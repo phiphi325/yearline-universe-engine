@@ -56,6 +56,13 @@ from .models import (
     build_and_compare_cross_sectional,
     DIRECT_MODEL_VERSION,
 )
+from .generalization import (
+    evaluate_generalization,
+    build_and_evaluate_generalization,
+    episode_row_weights,
+    calibration_metrics,
+    GENERALIZATION_VERSION,
+)
 from .validation import (
     validate_ticker_sanity,
     validate_reference_parity,
@@ -98,6 +105,11 @@ __all__ = [
     "compare_feature_sets",
     "build_and_compare_cross_sectional",
     "DIRECT_MODEL_VERSION",
+    "evaluate_generalization",
+    "build_and_evaluate_generalization",
+    "episode_row_weights",
+    "calibration_metrics",
+    "GENERALIZATION_VERSION",
     "validate_ticker_sanity",
     "validate_reference_parity",
     "ml_feature_leakage_audit",

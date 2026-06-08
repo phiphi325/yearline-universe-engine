@@ -1,6 +1,6 @@
 # Phase 7 — Discrimination, not recalibration (report-driven)
 
-**Status:** ◐ IN PROGRESS — **PR-A (path features) + PR-B/C (direct classifier) + PR-D (cross-sectional features) DELIVERED**; PR-E next.
+**Status:** ✅ **PR-A/B/C/D/E ALL DELIVERED** — path features + direct classifier + cross-sectional features + leave-one-*ticker*-out generalization + classifier↔empirical blend. Remaining: optional gated **consumer wiring** into the envelope.
 **Part of:** the V13.3 phased roadmap (see `../README.md`)
 **Source:** `docs/uploaded/V12_V13_AUC_MACE_improvement_research_report.md`
 **Theme:** Phase 6 proved 60d is **sample/regime-limited, not a calibration problem** —
@@ -27,7 +27,7 @@ Sequenced as small PRs:
 | **A** | `features.py` — leakage-safe path-dynamic repair features | ✅ DELIVERED |
 | **B/C** | `labels.py` (direct horizon labels + censoring) + `models.py` (regularized-logistic direct horizon classifier; GBM diagnostic) | ✅ DELIVERED |
 | **D** | `cross_sectional.py` — peer / sector / market (cross-sectional) regime features | ✅ DELIVERED |
-| E | episode-aware validation (leave-one-*ticker*-out) + row weighting + hierarchical shrinkage | ☐ next |
+| **E** | `generalization.py` — leave-one-*ticker*-out CV + row weighting + matched ticker-LOO empirical + hierarchical-shrinkage blend + richer calibration metrics | ✅ DELIVERED |
 
 > Tempered expectations (see the report review): pooled AUC is already **0.74–0.82** at
 > ≤40d, so expect *marginal* AUC + better **out-of-sample generalization**, not another
@@ -41,6 +41,10 @@ Sequenced as small PRs:
 > **PR-D result (§4):** cross-sectional regime features *stack* a further **+0.018 AUC at 40d**
 > (MACE 0.067→0.043) — but, against the going-in hypothesis, do **not** rescue 60d. The win is
 > concentrated at 40d; honest negatives elsewhere.
+>
+> **PR-E result (§5):** the wins **survive leave-one-*ticker*-out** (generalization gap ≈ 0) and
+> the **classifier↔empirical blend** beats *both* standalone surfaces on AUC at every horizon
+> while restoring near-empirical calibration — even a gate-passing **60d** (AUC 0.786, MACE 0.068).
 
 ## 2. PR-A — `features.py` (delivered)
 
@@ -192,7 +196,63 @@ breadth is coarse and the market proxy overlaps the names; a **wider / multi-sec
 universe** is the lever most likely to extend the cross-sectional gains (and the only
 plausible route to a 60d improvement). That is a *data* unlock, gated on more uploads.
 
-## 5. Files changed
+## 5. PR-E — generalization rigor (delivered)
+
+### 5.1 What it is
+
+`src/yearline_universe/generalization.py` stress-tests the classifier the way deployment
+will — predicting a name it has **never seen**. Five conservative pieces:
+
+- **Leave-one-*ticker*-out CV** (`LeaveOneGroupOut` by ticker) alongside transition-purged CV;
+  the `generalization_gap` is the AUC cost of an unseen name.
+- **Episode row weighting** (≈ 1/√rows-per-transition) via `sample_weight`, so long dormant
+  episodes don't dominate the fit.
+- **A matched ticker-LOO empirical baseline** — recomputed with the held-out name removed from
+  the reference — so classifier and estimator face the same handicap.
+- **Hierarchical-shrinkage blend** — per-horizon convex `w·classifier + (1−w)·empirical`, `w`
+  chosen out-of-fold by Brier.
+- **Richer calibration metrics**: ECE, quantile-MACE, reliability slope, Brier (+ the gate's binned MACE).
+
+### 5.2 Does it generalize? (real universe — 9 tickers, 162 transitions)
+
+AUC of the classifier (path+xs, row-weighted), transition-purged vs leave-one-ticker-out, with
+the matched empirical baseline:
+
+| H | tx-purged AUC | **ticker-LOO AUC** | gap | weighting effect | empirical (ticker-LOO) |
+|---|---|---|---|---|---|
+| 10 | 0.811 | 0.815 | −0.004 | +0.001 | **0.817** |
+| 20 | 0.790 | **0.811** | −0.021 | +0.010 | 0.785 |
+| 40 | 0.796 | **0.800** | −0.004 | +0.011 | 0.766 |
+| 60 | 0.779 | **0.773** | +0.006 | +0.026 | 0.743 |
+
+- **The gap is ≈ 0 (or negative).** Holding out a whole name does *not* collapse AUC — the
+  discrimination comes from generalizable path/regime features, not memorized ticker quirks.
+  The PR-C/D wins **survive**: the classifier still beats the matched empirical baseline at
+  20/40/60d under the unseen-name test (40d **0.800 vs 0.766**) and ties at 10d.
+- **Row weighting helps everywhere** (+0.001…+0.026 AUC), most at 60d.
+
+### 5.3 The ranker/estimator tradeoff → the blend wins
+
+Under the unseen-name test the classifier **ranks** better but **calibrates** worse (over-confident,
+slope ≈ 0.8) than the shrunk empirical count; the per-horizon blend captures both (ticker-LOO):
+
+| H | clf MACE | emp MACE | **blend w (clf)** | **blend AUC** | **blend MACE** |
+|---|---|---|---|---|---|
+| 10 | 0.103 | 0.047 | 0.25 | **0.835** | 0.050 |
+| 20 | 0.094 | 0.041 | 0.50 | **0.819** | 0.043 |
+| 40 | 0.078 | 0.045 | 0.50 | **0.806** | 0.041 |
+| 60 | 0.085 | 0.080 | 0.50 | **0.786** | 0.068 |
+
+The blend (≈ 50/50; lean-empirical 25/75 at 10d) **beats both standalone surfaces on AUC at
+every horizon** *and* restores near-empirical calibration — the best AUCs of the whole phase
+(0.806–0.835 at ≤40d) with MACE clearing the 0.10 gate at all four horizons, **including a
+gate-passing 60d (AUC 0.786, MACE 0.068)** — the horizon Phase 6 flagged and PR-D couldn't move.
+
+Net: discrimination **generalizes to unseen names**; the **blend** is the surface to gate in
+(classifier ranks, empirical calibrates). 60d is finally defensible — though still the weakest
+and base-rate-heavy (0.72), so its caveats stand.
+
+## 6. Files changed
 
 **PR-B/C:**
 - `src/yearline_universe/labels.py` (new) — `build_direct_horizon_dataset`,
@@ -215,18 +275,26 @@ plausible route to a 60d improvement). That is a *data* unlock, gated on more up
   `build_and_compare_cross_sectional`.
 - `tests/test_cross_sectional.py` (new, +3) — shape, peer-relative-is-centered invariant,
   **whole-panel no-future-leakage**.
+
+**PR-E:**
+- `src/yearline_universe/generalization.py` (new) — `evaluate_generalization`,
+  `build_and_evaluate_generalization`, `episode_row_weights`, `calibration_metrics`,
+  `GENERALIZATION_VERSION`.
+- `tests/test_generalization.py` (new, +4) — row-weight down-weighting, metric keys/bounds,
+  ticker-LOO structure + gap + blend, empty/single-ticker grace.
 - `src/yearline_universe/__init__.py` — exports.
 
 Full per-file suite green; no-hardcoded-ticker guard holds. **No existing output changes**
 (capability before consumer).
 
-## 6. Reproduce
+## 7. Reproduce
 
 ```python
 from yearline_universe import load_universe_config
 from yearline_universe.ticker_pipeline import _build_foundation
 from yearline_universe.models import (
     build_and_evaluate_direct_horizon_models, build_and_compare_cross_sectional)
+from yearline_universe.generalization import build_and_evaluate_generalization
 
 uni = load_universe_config("config/universe_mvp_software_like.yaml")
 pooled = {}
@@ -237,31 +305,32 @@ for tc in uni.tickers:
 
 # PR-B/C — classifier vs empirical baseline
 hh = build_and_evaluate_direct_horizon_models(pooled, horizons=[10, 20, 40, 60])
-
 # PR-D — path-only vs path+cross-sectional ladder
 ladder = build_and_compare_cross_sectional(pooled, horizons=[10, 20, 40, 60])
-for r in ladder["horizons"]:
-    print(r["horizon_days"], r["sets"]["path"]["auc"],
-          r["sets"]["path_plus_xs"]["auc"], r.get("xs_lift_auc"), r["best_set"])
+# PR-E — leave-one-ticker-out generalization + classifier<->empirical blend
+gen = build_and_evaluate_generalization(pooled, horizons=[10, 20, 40, 60])
+for r in gen["horizons"]:
+    print(r["horizon_days"], r["ticker_loo"]["classifier_weighted"]["auc"],
+          r["generalization_gap_auc"], r["blend_ticker_loo"].get("auc"))
 ```
 
-## 7. Decision gate → PR-E
+## 8. Decision gate → consumer wiring (Phase 7 modeling complete)
 
-PR-A/B/C/D have proven the *capability*: the full feature stack (path + cross-sectional)
-beats the empirical baseline most clearly at **40d** (AUC 0.762 → 0.794, MACE 0.077 → 0.043),
-with smaller/contingent wins at 20/60d and 10d staying empirical. The honest negative — the
-cross-sectional snapshot does **not** rescue 60d — points PR-E at *validation rigor and
-generalization*, not more feature surface:
+PR-A→E have proven the full case end-to-end: leakage-safe path + cross-sectional features feed
+a regularized-logistic direct horizon classifier that, **under the unseen-name test**
+(leave-one-*ticker*-out), beats the empirical estimator on discrimination and — **blended** with
+it — wins on *both* AUC and calibration at every horizon (blend AUC 0.786–0.835, MACE ≤ 0.068).
+The modeling track is done; everything so far is **capability-before-consumer** — no envelope
+output has changed.
 
-- **Leave-one-*ticker*-out** CV (not just leave-one-transition-out) — the true test of
-  whether a model generalizes to an unseen name, and the right power check on ~162 episodes.
-- **Row weighting** (≈ 1/√episode_rows) so long dormant episodes don't dominate the fit.
-- **Hierarchical shrinkage** blending the classifier with the empirical estimator
-  per-horizon (lean on the classifier where it wins, the estimator where it doesn't).
-- **Richer calibration metrics** (ECE / quantile-MACE / reliability slope) beyond binned MACE.
+The remaining step is the **gated consumer wiring** (a separate, output-changing PR, reviewed
+like Phase 3): surface the **per-horizon blend** in `retry_hazard_context` behind the *same*
+trust gate as the empirical estimator — recommended split **blend (≈50/50) at 20/40/60d, lean-empirical
+(25/75) at 10d** — keeping the empirical estimator as the canonical fallback whenever the gate
+fails or sklearn is unavailable, and surfacing the richer calibration metrics (ECE / quantile-MACE /
+slope) as evidence. 60d would graduate from diagnostic to gated-but-cautioned (base rate 0.72,
+thin sample).
 
-Only after PR-E does a winning, per-horizon-gated model get wired into `retry_hazard_context`
-behind the same trust gate as the empirical estimator (likely: **classifier at 40d**,
-empirical at 10d, blend at 20/60d). 60d stays diagnostic. The largest remaining lever is a
-**wider / multi-sector universe** (a data unlock), which would most extend the
-cross-sectional gains. Educational research only; not a trading signal.
+The largest remaining *modeling* lever is a **wider / multi-sector universe** (a data unlock):
+it would sharpen breadth, de-correlate the market proxy, and is the most plausible route to
+further 60d gains. Educational research only; not a trading signal.
