@@ -34,6 +34,11 @@ from .calibration import (
     build_horizon_calibration_dataset,
     horizon_calibration_metrics,
 )
+from .features import (
+    build_price_path_features,
+    repair_path_features_at,
+    PATH_FEATURE_COLUMNS,
+)
 from .validation import (
     validate_ticker_sanity,
     validate_reference_parity,
@@ -62,6 +67,9 @@ __all__ = [
     "build_calibration_context",
     "build_horizon_calibration_dataset",
     "horizon_calibration_metrics",
+    "build_price_path_features",
+    "repair_path_features_at",
+    "PATH_FEATURE_COLUMNS",
     "validate_ticker_sanity",
     "validate_reference_parity",
     "ml_feature_leakage_audit",
