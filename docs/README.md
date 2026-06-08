@@ -19,14 +19,17 @@ All docs for the V13 Universe Statistical Context Engine.
 
 | Doc | What it covers |
 |---|---|
-| [phased_design/README.md](phased_design/README.md) | The V13.3 value-first phased roadmap: **Phases 1–5 ✅ ALL DELIVERED** — Phase 1 gap×drawdown evidence, Phase 2 conditional timing, Phase 3 empirical-horizon hazard hardening (P40 fix), Phase 4 calibration + trust gate (V13.7), Phase 5 pooled training + data freshness (9 tickers current) — **pooling clears the gate at 10/20/40d** (AUC 0.74–0.82). Each phase wrapped with its spec + deliverables + artifacts. |
+| [phased_design/README.md](phased_design/README.md) | The V13.3 phased roadmap: **Phases 1–7 ✅ ALL DELIVERED** — P1 gap×drawdown evidence, P2 conditional timing, P3 empirical-horizon hazard hardening (P40 fix), P4 calibration + trust gate (V13.7), P5 pooled training + data freshness (9 tickers) — **pooling clears the gate at 10/20/40d** (AUC 0.74–0.82); P6 honest (out-of-fold) gate; **P7 discrimination** — a direct horizon classifier ↔ empirical **blend** (opt-in `surface_blend` overlay) that, under leave-one-ticker-out, lifts blend AUC to 0.79–0.84 and clears the gate at all four horizons. Each phase wrapped with its spec + deliverables + artifacts. |
 
 ## Tutorials
 
+Seven numbered tutorials (built in roughly the project's phase order). See the index for the full table.
+
 | Doc | What it covers |
 |---|---|
-| [tutorials/performance_optimization_tutorial.md](tutorials/performance_optimization_tutorial.md) | a junior-engineer tutorial on performance optimization, taught from this engine's real optimizations |
-| [tutorials/README.md](tutorials/README.md) | tutorials index |
+| [tutorials/README.md](tutorials/README.md) | **tutorials index** (01–07) |
+| 01–05 | performance optimization · optional-computation feature flags · empirical-estimator-over-model-extrapolation (P3) · calibration & trust-gating (P4) · AUC & calibration for ML students |
+| 06–07 | **(P7)** direct horizon classifier & the blend · the **MSFT 2026-06-05 low-readiness-repair** worked walkthrough |
 
 ## Conventions
 

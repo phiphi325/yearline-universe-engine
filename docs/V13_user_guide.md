@@ -151,17 +151,23 @@ To add tickers/sectors, append entries to `tickers:` and provide a price source
 | **Pooled** hazard/reference/calibration (Phase 5) | `run_universe_pipeline(uni, ..., pool_hazard=True)` (opt-in; pools the universe so state-conditioned scopes discriminate) |
 | With horizon calibration + trust gate | `run_universe_pipeline(uni, ..., calibrate=True)` (opt-in, V13.7; rescans the panel, slower) |
 | **Trustworthy probability** (pooled + calibrated) | `run_universe_pipeline(uni, ..., pool_hazard=True, calibrate=True)` — gate passes at 10/20/40d |
+| **Discriminative blend overlay** (Phase 7) | `run_universe_pipeline(uni, ..., pool_hazard=True, surface_blend=True)` (opt-in, pooled-only; adds `retry_hazard_context.direct_classifier_blend`) |
 | With prototype ML timing/quality models | `run_ticker_pipeline(..., fit_ml_models=True)` (opt-in; not consumed by the envelope) |
 | Full run + exports | `python scripts/run_universe_mvp.py <config.yaml> --provider cache [--n-jobs 4] [--incremental] [--pool-hazard] [--calibrate] [--fit-ml-models]` |
 | Notebook | open `notebooks/yearline_v13_universe_mvp.ipynb` |
 
-> `calibrate`, `fit_ml_models`, and `pool_hazard` are all **opt-in** (default off → the
-> hot path stays fast and `calibration_context.available=false`). `calibrate` /
-> `fit_ml_models` are **output-preserving when off**. `pool_hazard` is **output-changing
-> for the hazard/calibration blocks** (it pools the universe so the empirical estimator
-> can discriminate) — the descriptive/timing/trend blocks are unaffected. To get a
-> *trustworthy* surfaced probability (gate passing at ≤40d) use **`pool_hazard=True,
-> calibrate=True`** together (see §7–§8 and `docs/phased_design/phase_05/`).
+> `calibrate`, `fit_ml_models`, `pool_hazard`, and `surface_blend` are all **opt-in**
+> (default off → the hot path stays fast and `calibration_context.available=false`).
+> `calibrate` / `fit_ml_models` are **output-preserving when off**. `pool_hazard` is
+> **output-changing for the hazard/calibration blocks** (it pools the universe so the
+> empirical estimator can discriminate) — the descriptive/timing/trend blocks are
+> unaffected. **`surface_blend`** (Phase 7, pooled-only) adds an **additive, gated**
+> `direct_classifier_blend` overlay — a direct horizon classifier blended per-horizon with
+> the empirical estimate; the empirical number stays **canonical** and with the switch off
+> the envelope is byte-identical. To get a *trustworthy* surfaced probability (gate passing
+> at ≤40d) use **`pool_hazard=True, calibrate=True`** together (see §7–§8 and
+> `docs/phased_design/phase_05/`); add **`surface_blend=True`** for the Phase 7 overlay
+> (`docs/phased_design/phase_07/` + tutorials 06–07).
 
 Exports layout:
 
