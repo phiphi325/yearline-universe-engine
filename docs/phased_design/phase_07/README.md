@@ -1,6 +1,6 @@
 # Phase 7 — Discrimination, not recalibration (report-driven)
 
-**Status:** ◐ IN PROGRESS — **PR-A (path-dynamic features) + PR-B/C (direct horizon classifier) DELIVERED**; PR-D/E next.
+**Status:** ◐ IN PROGRESS — **PR-A (path features) + PR-B/C (direct classifier) + PR-D (cross-sectional features) DELIVERED**; PR-E next.
 **Part of:** the V13.3 phased roadmap (see `../README.md`)
 **Source:** `docs/uploaded/V12_V13_AUC_MACE_improvement_research_report.md`
 **Theme:** Phase 6 proved 60d is **sample/regime-limited, not a calibration problem** —
@@ -26,8 +26,8 @@ Sequenced as small PRs:
 |---|---|---|
 | **A** | `features.py` — leakage-safe path-dynamic repair features | ✅ DELIVERED |
 | **B/C** | `labels.py` (direct horizon labels + censoring) + `models.py` (regularized-logistic direct horizon classifier; GBM diagnostic) | ✅ DELIVERED |
-| D | peer / sector / market features (cross-sectional) | ☐ next |
-| E | episode-aware validation (leave-one-episode/ticker-out) + row weighting + hierarchical shrinkage | ☐ |
+| **D** | `cross_sectional.py` — peer / sector / market (cross-sectional) regime features | ✅ DELIVERED |
+| E | episode-aware validation (leave-one-*ticker*-out) + row weighting + hierarchical shrinkage | ☐ next |
 
 > Tempered expectations (see the report review): pooled AUC is already **0.74–0.82** at
 > ≤40d, so expect *marginal* AUC + better **out-of-sample generalization**, not another
@@ -35,8 +35,12 @@ Sequenced as small PRs:
 > independent episodes**, not 4,765 daily rows, so regularized logistic is primary and
 > GBM is diagnostic-only. 60d is expected to stay diagnostic.
 >
-> **PR-B/C result (below) confirms exactly this:** the classifier wins by **+0.005…+0.024 AUC**
+> **PR-B/C result (§3) confirms exactly this:** the classifier wins by **+0.005…+0.024 AUC**
 > at 20/40/60d and *improves* long-horizon calibration — a marginal, honest win, not a leap.
+>
+> **PR-D result (§4):** cross-sectional regime features *stack* a further **+0.018 AUC at 40d**
+> (MACE 0.067→0.043) — but, against the going-in hypothesis, do **not** rescue 60d. The win is
+> concentrated at 40d; honest negatives elsewhere.
 
 ## 2. PR-A — `features.py` (delivered)
 
@@ -135,28 +139,94 @@ estimators predict:
 Net: the predicted **marginal AUC gain + better long-horizon calibration**. The classifier
 earns promotion at **20/40d** (plus a 60d calibration win); 10d remains empirical.
 
-## 4. Files changed (PR-B/C)
+## 4. PR-D — cross-sectional (peer/sector/market) features (delivered)
 
+### 4.1 What it is
+
+`src/yearline_universe/cross_sectional.py` adds **leakage-safe regime context** the
+per-name path features can't see — every value at date *t* combines each ticker's
+*contemporaneous* (≤ *t*) state, so there is no look-ahead (a whole-panel truncation test
+asserts row-*t* is identical when computed on a panel truncated at *t*):
+
+- **market regime** (broad ETF proxy, default QQQ): distance to its own yearline,
+  above/below flag, 20d return, 20d distance-change.
+- **breadth / dispersion** over the equity names: fraction above their yearline,
+  cross-sectional 20d-return dispersion.
+- **peer-relative strength**: this name's 20d return and yearline distance *minus the
+  equity cross-section median* (is it leading or lagging its peers?).
+
+`labels.py` merges these by `(ticker, as_of_date)` and exposes `MODEL_FEATURE_COLUMNS_WITH_XS`;
+`models.py` gains a `feature_columns` arg + `compare_feature_sets`, so the **path-only vs
+path+cross-sectional** ladder runs through the *same* episode-aware head-to-head.
+
+### 4.2 The ladder — real universe, episode-aware OOF
+
+Same 4,765 rows / 162 transitions; logistic OOF AUC/MACE per feature set (empirical
+baseline shown for reference):
+
+| H | empirical AUC | path AUC | **path+xs AUC** | xs ΔAUC | path MACE | **path+xs MACE** | best set |
+|---|---|---|---|---|---|---|---|
+| 10 | **0.816** | 0.802 | 0.804 | +0.002 | 0.046 | 0.064 | empirical still best |
+| 20 | 0.779 | **0.785** | 0.783 | −0.001 | 0.059 | 0.056 | path |
+| 40 | 0.762 | 0.775 | **0.794** | **+0.018** | 0.067 | **0.043** | **path+xs** |
+| 60 | 0.738 | **0.762** | 0.762 | 0.000 | 0.072 | 0.097 | path (xs hurts MACE) |
+
+**Reading the result:**
+
+- **40d — the standout.** Cross-sectional regime lifts AUC **+0.018 (0.775 → 0.794)** and
+  *sharply* improves calibration (MACE **0.067 → 0.043**). It **stacks** on PR-C: the full
+  stack now beats the empirical baseline by **+0.032 AUC** at 40d (0.762 → 0.794) with
+  better calibration — the strongest single result of Phase 7.
+- **60d — hypothesis refuted (honestly).** Regime features were *expected* to help the
+  regime-limited horizon most; instead they add **zero AUC** and **worsen MACE**
+  (0.072 → 0.097). A *contemporaneous* cross-sectional snapshot doesn't capture 60d's
+  *temporal* regime drift, and over this tiny universe breadth is coarse and the market
+  proxy is near-collinear with the mega-cap names. 60d stays diagnostic — cross-sectional
+  features are **not** its fix at this scale.
+- **10d / 20d — flat.** Where short-term own-state is already abundant and predictive, the
+  regime context adds nothing (10d AUC +0.002 but MACE worse; 20d a wash). 10d stays empirical.
+
+Net: **promote path+xs at 40d; keep path-only (or empirical) elsewhere.** Honest, narrow,
+stackable. **Caveat:** the win is real but the universe is small (5–6 equities + 3 ETFs) —
+breadth is coarse and the market proxy overlaps the names; a **wider / multi-sector
+universe** is the lever most likely to extend the cross-sectional gains (and the only
+plausible route to a 60d improvement). That is a *data* unlock, gated on more uploads.
+
+## 5. Files changed
+
+**PR-B/C:**
 - `src/yearline_universe/labels.py` (new) — `build_direct_horizon_dataset`,
   `MODEL_FEATURE_COLUMNS`.
 - `src/yearline_universe/models.py` (new) — `make_direct_horizon_logistic`,
   `make_direct_horizon_gbm`, `fit_direct_horizon_models`,
   `evaluate_direct_horizon_models`, `build_and_evaluate_direct_horizon_models`,
   `DIRECT_MODEL_VERSION`.
-- `src/yearline_universe/__init__.py` — exports.
-- `tests/test_models.py` (new, +4) — structure + planted-signal AUC; a
+- `tests/test_models.py` (new, +5) — structure + planted-signal AUC; a
   **transition-purged-CV-is-not-optimistic** test (a within-episode label leak does *not*
-  inflate OOF AUC to ~1.0 under transition-purged folds); a scorable fitted pipeline;
-  empty-input grace. Full per-file suite green; no-hardcoded-ticker guard holds.
+  inflate OOF AUC to ~1.0 under transition-purged folds); the PR-D feature-set ladder;
+  a scorable fitted pipeline; empty-input grace.
 
-No existing output changes (capability before consumer).
+**PR-D:**
+- `src/yearline_universe/cross_sectional.py` (new) — `build_cross_sectional_features`,
+  `CROSS_SECTIONAL_FEATURE_COLUMNS`.
+- `src/yearline_universe/labels.py` — `include_cross_sectional` merge +
+  `MODEL_FEATURE_COLUMNS_WITH_XS`.
+- `src/yearline_universe/models.py` — `feature_columns` arg + `compare_feature_sets`,
+  `build_and_compare_cross_sectional`.
+- `tests/test_cross_sectional.py` (new, +3) — shape, peer-relative-is-centered invariant,
+  **whole-panel no-future-leakage**.
+- `src/yearline_universe/__init__.py` — exports.
 
-## 5. Reproduce
+Full per-file suite green; no-hardcoded-ticker guard holds. **No existing output changes**
+(capability before consumer).
+
+## 6. Reproduce
 
 ```python
 from yearline_universe import load_universe_config
 from yearline_universe.ticker_pipeline import _build_foundation
-from yearline_universe.models import build_and_evaluate_direct_horizon_models
+from yearline_universe.models import (
+    build_and_evaluate_direct_horizon_models, build_and_compare_cross_sectional)
 
 uni = load_universe_config("config/universe_mvp_software_like.yaml")
 pooled = {}
@@ -165,20 +235,33 @@ for tc in uni.tickers:
     pooled[tc.ticker] = {"peer_group": tc.peer_group, "price_df": f["price_df"],
                          "recovery_table": f["recovery"], "live_diagnostic": f["live"]}
 
-result = build_and_evaluate_direct_horizon_models(pooled, horizons=[10, 20, 40, 60])
-for r in result["horizons"]:
-    print(r["horizon_days"], r["logistic"]["auc"], r["empirical_baseline"]["auc"],
-          r["promote_recommended"])
+# PR-B/C — classifier vs empirical baseline
+hh = build_and_evaluate_direct_horizon_models(pooled, horizons=[10, 20, 40, 60])
+
+# PR-D — path-only vs path+cross-sectional ladder
+ladder = build_and_compare_cross_sectional(pooled, horizons=[10, 20, 40, 60])
+for r in ladder["horizons"]:
+    print(r["horizon_days"], r["sets"]["path"]["auc"],
+          r["sets"]["path_plus_xs"]["auc"], r.get("xs_lift_auc"), r["best_set"])
 ```
 
-## 6. Decision gate → PR-D
+## 7. Decision gate → PR-E
 
-The direct classifier is a **promotable** improvement at 20/40d (and a 60d calibration
-win) — *capability* proven. Before surfacing it in the envelope, PR-D adds the
-cross-sectional lever the report ranks next — **peer / sector / market features** (relative
-strength vs peers, sector breadth, regime/market context) — and re-runs this same
-head-to-head. PR-E then hardens validation (leave-one-*ticker*-out, not just
-leave-one-transition-out, + row weighting + hierarchical shrinkage) and richer calibration
-metrics. Only after that does a winning, gated model get wired into `retry_hazard_context`
-behind the same trust gate as the empirical estimator. 60d stays diagnostic pending the
-regime features.
+PR-A/B/C/D have proven the *capability*: the full feature stack (path + cross-sectional)
+beats the empirical baseline most clearly at **40d** (AUC 0.762 → 0.794, MACE 0.077 → 0.043),
+with smaller/contingent wins at 20/60d and 10d staying empirical. The honest negative — the
+cross-sectional snapshot does **not** rescue 60d — points PR-E at *validation rigor and
+generalization*, not more feature surface:
+
+- **Leave-one-*ticker*-out** CV (not just leave-one-transition-out) — the true test of
+  whether a model generalizes to an unseen name, and the right power check on ~162 episodes.
+- **Row weighting** (≈ 1/√episode_rows) so long dormant episodes don't dominate the fit.
+- **Hierarchical shrinkage** blending the classifier with the empirical estimator
+  per-horizon (lean on the classifier where it wins, the estimator where it doesn't).
+- **Richer calibration metrics** (ECE / quantile-MACE / reliability slope) beyond binned MACE.
+
+Only after PR-E does a winning, per-horizon-gated model get wired into `retry_hazard_context`
+behind the same trust gate as the empirical estimator (likely: **classifier at 40d**,
+empirical at 10d, blend at 20/60d). 60d stays diagnostic. The largest remaining lever is a
+**wider / multi-sector universe** (a data unlock), which would most extend the
+cross-sectional gains. Educational research only; not a trading signal.

@@ -38,7 +38,9 @@ from typing import Any, Callable, Mapping
 import numpy as np
 import pandas as pd
 
-from .labels import MODEL_FEATURE_COLUMNS, build_direct_horizon_dataset
+from .labels import (
+    MODEL_FEATURE_COLUMNS, MODEL_FEATURE_COLUMNS_WITH_XS, build_direct_horizon_dataset,
+)
 from .calibration import (
     CALIBRATION_HORIZONS, CALIBRATION_BINS, MIN_CALIBRATION_BIN_N,
     GATE_MIN_N, GATE_MIN_AUC, GATE_MAX_MACE,
@@ -65,6 +67,8 @@ __all__ = [
     "fit_direct_horizon_models",
     "evaluate_direct_horizon_models",
     "build_and_evaluate_direct_horizon_models",
+    "compare_feature_sets",
+    "build_and_compare_cross_sectional",
 ]
 
 DIRECT_MODEL_VERSION = "v13_phase7_direct_horizon_classifier"
@@ -197,7 +201,8 @@ def fit_direct_horizon_models(dataset: pd.DataFrame, horizons=None) -> dict[str,
 
 def evaluate_direct_horizon_models(dataset: pd.DataFrame, horizons=None,
                                    n_splits: int = DEFAULT_CV_SPLITS,
-                                   include_gbm: bool = True) -> dict[str, Any]:
+                                   include_gbm: bool = True,
+                                   feature_columns=None) -> dict[str, Any]:
     """Episode-aware OOF AUC/MACE for the direct classifier vs the empirical baseline.
 
     For each horizon, on the **identical** set of rows where the empirical baseline
@@ -207,6 +212,9 @@ def evaluate_direct_horizon_models(dataset: pd.DataFrame, horizons=None,
       * GBM (diagnostic) AUC / MACE,
     and a per-horizon verdict (``promote_recommended`` = beats baseline AUC AND MACE not
     worse by > tolerance AND enough rows). The whole thing is JSON-serializable.
+
+    ``feature_columns`` (default ``MODEL_FEATURE_COLUMNS``) selects the classifier's inputs
+    — pass ``MODEL_FEATURE_COLUMNS_WITH_XS`` to include the PR-D cross-sectional features.
     """
     horizons = [int(h) for h in (horizons or CALIBRATION_HORIZONS)]
     if not _SKLEARN:
@@ -214,8 +222,9 @@ def evaluate_direct_horizon_models(dataset: pd.DataFrame, horizons=None,
     if dataset is None or dataset.empty:
         return {"available": False, "warning": "empty_dataset"}
 
-    feats = [c for c in MODEL_FEATURE_COLUMNS if c in dataset.columns]
-    missing = [c for c in MODEL_FEATURE_COLUMNS if c not in dataset.columns]
+    cols = list(feature_columns) if feature_columns is not None else MODEL_FEATURE_COLUMNS
+    feats = [c for c in cols if c in dataset.columns]
+    missing = [c for c in cols if c not in dataset.columns]
     if "transition_key" in dataset.columns:
         groups_all = dataset["transition_key"].astype(str).to_numpy()
     else:
@@ -315,5 +324,92 @@ def build_and_evaluate_direct_horizon_models(tickers_data: Mapping[str, Mapping[
     dataset = build_direct_horizon_dataset(tickers_data, config=config, horizons=horizons)
     result = evaluate_direct_horizon_models(dataset, horizons=horizons,
                                             n_splits=n_splits, include_gbm=include_gbm)
+    result["dataset_rows"] = int(len(dataset))
+    return result
+
+
+# ---------------------------------------------------------------------------
+# PR-D: feature-set ladder (does cross-sectional regime add lift over path-only?)
+# ---------------------------------------------------------------------------
+
+def compare_feature_sets(dataset: pd.DataFrame, feature_sets: Mapping[str, list[str]],
+                         horizons=None, n_splits: int = DEFAULT_CV_SPLITS) -> dict[str, Any]:
+    """Run the episode-aware head-to-head for several feature sets and tabulate the lift.
+
+    ``feature_sets`` maps a name → feature columns (e.g.
+    ``{"path": MODEL_FEATURE_COLUMNS, "path_plus_xs": MODEL_FEATURE_COLUMNS_WITH_XS}``).
+    Returns, per horizon, the empirical baseline + each set's logistic AUC/MACE, the best
+    set, and (when both ``path`` and ``path_plus_xs`` are present) the cross-sectional lift
+    = (path_plus_xs AUC − path AUC). The empirical baseline is identical across sets
+    (logistic OOF is defined on every row), so the comparison is on matched rows.
+    """
+    horizons = [int(h) for h in (horizons or CALIBRATION_HORIZONS)]
+    if not _SKLEARN:
+        return {"available": False, "warning": "sklearn_unavailable"}
+    if dataset is None or dataset.empty:
+        return {"available": False, "warning": "empty_dataset"}
+
+    runs = {name: evaluate_direct_horizon_models(
+                dataset, horizons=horizons, n_splits=n_splits, include_gbm=False,
+                feature_columns=cols)
+            for name, cols in feature_sets.items()}
+
+    by_h: list[dict[str, Any]] = []
+    for h in horizons:
+        def _row(name):
+            r = next((x for x in runs[name]["horizons"] if x.get("horizon_days") == h), None)
+            return r if (r and r.get("status") == "ok") else None
+        rows = {name: _row(name) for name in feature_sets}
+        present = {name: r for name, r in rows.items() if r is not None}
+        if not present:
+            by_h.append({"horizon_days": h, "status": "degenerate_or_missing"})
+            continue
+        any_r = next(iter(present.values()))
+        sets = {name: {"auc": r["logistic"]["auc"], "mace": r["logistic"]["mace"]}
+                for name, r in present.items()}
+        ranked = [n for n in sets if sets[n]["auc"] is not None]
+        best = max(ranked, key=lambda n: sets[n]["auc"]) if ranked else None
+        entry = {
+            "horizon_days": h, "status": "ok",
+            "n_shared_rows": any_r["n_shared_rows"], "base_rate": any_r["base_rate"],
+            "empirical_baseline": any_r["empirical_baseline"],
+            "sets": sets, "best_set": best,
+        }
+        if "path" in sets and "path_plus_xs" in sets:
+            a0, a1 = sets["path"]["auc"], sets["path_plus_xs"]["auc"]
+            m0, m1 = sets["path"]["mace"], sets["path_plus_xs"]["mace"]
+            entry["xs_lift_auc"] = (float(a1) - float(a0)) if (a0 is not None and a1 is not None) else None
+            entry["xs_lift_mace"] = (float(m1) - float(m0)) if (m0 is not None and m1 is not None) else None
+            entry["xs_helps"] = bool(entry["xs_lift_auc"] is not None and entry["xs_lift_auc"] > 0)
+        by_h.append(entry)
+
+    return {
+        "available": True, "model_version": DIRECT_MODEL_VERSION,
+        "n_rows": int(len(dataset)),
+        "n_transitions": int(dataset["transition_key"].nunique()) if "transition_key" in dataset.columns else None,
+        "set_names": list(feature_sets), "horizons": by_h,
+        "cv": f"group_kfold_purged_by_transition(k<={int(n_splits)})",
+        "per_set_detail": runs,
+        "disclaimers": [
+            "Cross-sectional features are leakage-safe (≤t contemporaneous regime; no look-ahead).",
+            "xs_lift_auc = path_plus_xs OOF AUC − path OOF AUC on matched rows.",
+            "Small universe ⇒ breadth is coarse; lift strengthens with a wider/multi-sector universe.",
+            "Educational research only; not a trading signal.",
+        ],
+    }
+
+
+def build_and_compare_cross_sectional(tickers_data: Mapping[str, Mapping[str, Any]],
+                                      config=None, horizons=None,
+                                      n_splits: int = DEFAULT_CV_SPLITS) -> dict[str, Any]:
+    """Build the modeling table (with cross-sectional features) and run the path vs
+    path+cross-sectional ladder. ``tickers_data`` = the universe runner's pooled_data."""
+    horizons = [int(h) for h in (horizons or CALIBRATION_HORIZONS)]
+    dataset = build_direct_horizon_dataset(tickers_data, config=config, horizons=horizons,
+                                           include_cross_sectional=True)
+    result = compare_feature_sets(
+        dataset,
+        {"path": MODEL_FEATURE_COLUMNS, "path_plus_xs": MODEL_FEATURE_COLUMNS_WITH_XS},
+        horizons=horizons, n_splits=n_splits)
     result["dataset_rows"] = int(len(dataset))
     return result
