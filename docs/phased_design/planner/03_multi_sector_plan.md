@@ -5,6 +5,9 @@
 priority for now per the current roadmap; **gated on a multi-sector data upload (MS-0).** Educational
 research; not financial advice.*
 
+> **Delivered as `docs/phased_design/phase_10/`** (created when MS-0 data lands); `README.md` +
+> `artifacts/` per the phase convention.
+
 **Why deferred.** The binding constraint is **labelled samples per sector**, and the unlock is **data**
 (more names/sectors + history), which only the user can provide. Tracks A (retry-success) and B
 (option-mgmt) take priority and do not depend on this. When a multi-sector dataset lands, MS-0 opens.

@@ -11,17 +11,38 @@ of work. Analysis = *why/what*; planner = *how/when, PR by PR*.
 
 ## Priorities
 
-| Track | Scope | Priority | Lives in |
-|---|---|---|---|
-| **A — Retry-success** | RS-1…RS-4: make `P(success │ retry)` trustworthy (today a gated-off prototype) | **HIGH (now)** | this repo |
-| **B — option-mgmt integration** | V13.8 adapter (this repo) + OM-Y0…Y5 (option-mgmt-2026) | **HIGH (now)** | this repo + `option-mgmt-2026` |
-| **C — Multi-sector** | MS-0…MS-5: widen the universe | **LOWER / deferred** (gated on a data upload) | this repo |
+| Track | Scope | Priority | Phase folder | Lives in |
+|---|---|---|---|---|
+| **A — Retry-success** | RS-1…RS-4: make `P(success │ retry)` trustworthy (today a gated-off prototype) | **HIGH (now)** | **`phase_08/`** | this repo |
+| **B — option-mgmt integration** | V13.8 adapter (this repo) + OM-Y0…Y5 (option-mgmt-2026) | **HIGH (now)** | **`phase_09/`** (yearline side) | this repo + `option-mgmt-2026` |
+| **C — Multi-sector** | MS-0…MS-5: widen the universe | **LOWER / deferred** (gated on a data upload) | **`phase_10/`** | this repo |
 
 The detailed specs:
 
 - [`01_retry_success_plan.md`](01_retry_success_plan.md) — Track A (RS-1…RS-4), spec-grade.
 - [`02_option_mgmt_integration_plan.md`](02_option_mgmt_integration_plan.md) — Track B (V13.8 adapter + OM-Y0…Y5).
 - [`03_multi_sector_plan.md`](03_multi_sector_plan.md) — Track C (MS-0…MS-5), condensed (deferred).
+
+## Phase folders — where the built work is recorded (`phase_08+`)
+
+This `planner/` folder is the **cross-track roadmap** (the *why/what/when*). The **delivered-phase
+record** for each track lives in a numbered `docs/phased_design/phase_NN/` folder, following the existing
+convention (a `README.md` with objective / scope / approach / acceptance + results, and an `artifacts/`
+snapshot subfolder) — exactly like `phase_01/…phase_07/`. **New phase-specific docs start at `phase_08`.**
+
+| Track | Phase folder | What goes there | Created |
+|---|---|---|---|
+| A — retry-success | **`phase_08/`** | RS-1…RS-4 as sub-PRs within the phase (the way Phase 7 held PR-A…E); `README.md` + `artifacts/` (head-to-head vs base rate, calibration, gate) | when RS-1 starts |
+| B — option-mgmt (yearline side) | **`phase_09/`** | the V13.8 adapter + the `YearlineContext` contract + schema + fixtures + the cross-repo contract test; `README.md` + `artifacts/` | when V13.8 starts |
+| C — multi-sector | **`phase_10/`** | MS-0…MS-5 (deferred, data-gated) | when MS-0 data lands |
+
+Notes:
+- **`phase_08` and `phase_09` can be in flight in parallel** — the numbers are record IDs, not a strict
+  delivery order (just as the V13.x version tags interleave).
+- **The `OM-Y*` milestones (Track B) are tracked in `option-mgmt-2026`'s own `docs/phased-design/`** —
+  `phase_09/` here records only the **yearline-side** adapter/contract work.
+- Each `phase_NN/README.md` cross-links back to its planner spec here (`planner/0N_*.md`) and to the
+  source analysis doc (`docs/research/`, `docs/option-mgmt-integration/`, `docs/multi-sector/`).
 
 ## Sequencing (how the two priority tracks interleave)
 
@@ -59,14 +80,14 @@ parallel.
 
 ## Status (all planned)
 
-| Item | Status |
-|---|---|
-| RS-1 success labels + empirical baseline | ☐ |
-| RS-2 success classifier + LOTO eval | ☐ |
-| RS-3 calibration + gate + blend | ☐ |
-| RS-4 gated `retry_success_context` + composite | ☐ |
-| V13.8 adapter (YearlineContext export) | ☐ |
-| OM-Y0 enhancement + ADR (option-mgmt-2026) | ☐ |
-| OM-Y1…Y4 contract → ingest → panel → gated consumption | ☐ |
-| OM-Y5 stretch | ☐ |
-| MS-0 data & taxonomy (deferred) | ☐ (blocked on data) |
+| Phase | Item | Status |
+|---|---|---|
+| `phase_08` | RS-1 success labels + empirical baseline | ☐ |
+| `phase_08` | RS-2 success classifier + LOTO eval | ☐ |
+| `phase_08` | RS-3 calibration + gate + blend | ☐ |
+| `phase_08` | RS-4 gated `retry_success_context` + composite | ☐ |
+| `phase_09` | V13.8 adapter (YearlineContext export) | ☐ |
+| `option-mgmt-2026` | OM-Y0 enhancement + ADR | ☐ |
+| `option-mgmt-2026` | OM-Y1…Y4 contract → ingest → panel → gated consumption | ☐ |
+| `option-mgmt-2026` | OM-Y5 stretch | ☐ |
+| `phase_10` | MS-0 data & taxonomy (deferred) | ☐ (blocked on data) |

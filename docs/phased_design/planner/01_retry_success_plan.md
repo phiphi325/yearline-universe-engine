@@ -3,6 +3,10 @@
 *Spec-grade execution plan to make `P(success │ retry)` trustworthy. Derived from
 `docs/research/01_retry_success_probability_2026-06-08.md`. Educational research; not financial advice.*
 
+> **Delivered as `docs/phased_design/phase_08/`.** RS-1…RS-4 are the sub-PRs within phase 08 (the way
+> Phase 7 held PR-A…E); each updates `phase_08/README.md` + `phase_08/artifacts/` per the phase
+> convention. `phase_08/README.md` will cross-link back to this spec.
+
 **Goal.** Today retry **occurrence** (`P(retry ≤ H)`) is mature (calibrated, gated, surfaced); retry
 **success** (given an attempt, does it *reclaim and hold*?) is a **gated-off, uncalibrated prototype**
 (`fit_retry_quality_classifier`) that barely beats the ~0.35 base rate. RS-1…RS-4 apply the exact

@@ -4,6 +4,12 @@
 [`option-mgmt-2026`](https://github.com/phiphi325/option-mgmt-2026). Derived from
 `docs/option-mgmt-integration/`. Educational research; not financial advice; neither system executes.*
 
+> **Yearline-side work delivered as `docs/phased_design/phase_09/`** (the V13.8 adapter + the
+> `YearlineContext` contract + schema + fixtures + the cross-repo contract test; `README.md` +
+> `artifacts/`). The **`OM-Y*` milestones are tracked in `option-mgmt-2026`'s own `docs/phased-design/`**,
+> not here — `phase_09/` records only the yearline side. `phase_08` (Track A) and `phase_09` can be in
+> flight in parallel.
+
 **The one hard rule (from the assessment).** `option-mgmt-2026/packages/engine` is **pure, no-I/O,
 lean-deps** (ADR-0005, CI-enforced). yearline is heavy + does I/O → it **must never be imported into the
 pure engine**. It runs in option-mgmt's **ingestion/jobs layer**, persists its envelope, and the engine

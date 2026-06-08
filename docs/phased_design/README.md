@@ -49,12 +49,14 @@ largest remaining lever is a **wider / multi-sector universe** (a data unlock), 
 [`planner/`](planner/) holds the **forward execution roadmap** (spec-grade, sequenced) that turns the
 analysis docs into PR-by-PR build plans:
 
-- [`planner/01_retry_success_plan.md`](planner/01_retry_success_plan.md) — **Track A (HIGH):** retry-success RS-1…RS-4.
-- [`planner/02_option_mgmt_integration_plan.md`](planner/02_option_mgmt_integration_plan.md) — **Track B (HIGH):** V13.8 adapter + OM-Y0…Y5.
-- [`planner/03_multi_sector_plan.md`](planner/03_multi_sector_plan.md) — **Track C (LOWER / deferred, data-gated):** MS-0…MS-5.
+- [`planner/01_retry_success_plan.md`](planner/01_retry_success_plan.md) — **Track A (HIGH):** retry-success RS-1…RS-4 → delivered as **`phase_08/`**.
+- [`planner/02_option_mgmt_integration_plan.md`](planner/02_option_mgmt_integration_plan.md) — **Track B (HIGH):** V13.8 adapter + OM-Y0…Y5 → yearline side delivered as **`phase_09/`** (OM-Y* tracked in `option-mgmt-2026`).
+- [`planner/03_multi_sector_plan.md`](planner/03_multi_sector_plan.md) — **Track C (LOWER / deferred, data-gated):** MS-0…MS-5 → delivered as **`phase_10/`**.
 
-See [`planner/README.md`](planner/README.md) for priorities, cross-track sequencing, and the shared
-acceptance bar.
+**New phase folders start at `phase_08`.** Each planner track is recorded as a numbered
+`phase_NN/` folder (README + `artifacts/`, like `phase_01…07`) when its build starts; `phase_08` and
+`phase_09` may run in parallel. See [`planner/README.md`](planner/README.md) for priorities, cross-track
+sequencing, the phase mapping, and the shared acceptance bar.
 
 ## Conventions for each phase folder
 
