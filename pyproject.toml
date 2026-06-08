@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "yearline-universe"
+version = "13.1.0"
+description = "V13 Universe Statistical Context Engine — ticker-agnostic, universe-first, sector-aware MA250/yearline repair-trend statistical context engine."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Proprietary — research use" }
+authors = [{ name = "Yearline Universe Engine" }]
+dependencies = [
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "scipy>=1.10",
+    "scikit-learn>=1.2",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+# Live data providers (cache-only runs need none of these).
+live = ["yfinance>=0.2.40", "curl_cffi>=0.7"]
+viz = ["matplotlib>=3.7"]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+yearline-universe-mvp = "scripts.run_universe_mvp:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

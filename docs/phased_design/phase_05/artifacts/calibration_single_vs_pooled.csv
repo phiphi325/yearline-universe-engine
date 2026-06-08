@@ -1,0 +1,9 @@
+scope,horizon_days,n_rows,n_transitions,observed_rate,predicted_mean,auc,mace_raw,trust_gate_passed
+single_ticker_MSFT,10,783,26,0.275,0.329,0.524,0.155,False
+single_ticker_MSFT,20,783,26,0.434,0.512,0.430,0.314,False
+single_ticker_MSFT,40,783,26,0.625,0.680,0.462,0.330,False
+single_ticker_MSFT,60,783,26,0.770,0.821,0.465,0.181,False
+pooled_universe_9ticker,10,4765,162,0.297,0.290,0.816,0.036,True
+pooled_universe_9ticker,20,4765,162,0.447,0.447,0.779,0.048,True
+pooled_universe_9ticker,40,4765,162,0.620,0.625,0.762,0.077,True
+pooled_universe_9ticker,60,4765,162,0.721,0.737,0.738,0.109,False

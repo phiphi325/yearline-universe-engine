@@ -1,0 +1,21 @@
+{
+  "active": true,
+  "hazard_today": 5.6732907019184794e-05,
+  "p_retry_within_10d": 0.30443999772493424,
+  "p_retry_within_20d": 0.5120397516041799,
+  "p_retry_within_40d": 0.7813610064063784,
+  "p_retry_within_60d": 0.9237284191912141,
+  "survival_60d": 0.07627158080878593,
+  "probability_policy": "v13_empirical_horizon_calibrated",
+  "p_retry_within_40d_reference_n": 239,
+  "p_retry_within_40d_reference_scope": "group_transition",
+  "diagnostic_model_state_hold_forward": {
+    "policy": "diagnostic_model_state_hold_forward_not_canonical",
+    "p_retry_within_10d": 0.0014221413380847148,
+    "p_retry_within_20d": 0.009688373506316461,
+    "p_retry_within_40d": 0.2862915007508051,
+    "p_retry_within_60d": 0.9997619714261573,
+    "note": "Frozen-state forward extrapolation; saturates to 1.0 for deep-below states. Not canonical."
+  },
+  "semantics": "active_repair_retry_metric"
+}

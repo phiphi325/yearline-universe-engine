@@ -1,0 +1,70 @@
+{
+  "schema_version": "v13_universe_run_manifest",
+  "universe_name": "mega_cap_ai_infra",
+  "as_of": "2026-06-05",
+  "n_tickers": 6,
+  "n_ok": 6,
+  "n_failed": 0,
+  "tickers": [
+    {
+      "ticker": "MSFT",
+      "sector": "Information Technology",
+      "peer_group": "mega_cap_software",
+      "status": "ok",
+      "error": null,
+      "n_canonical_events": 40,
+      "active_engine": "repair_retry_hazard_engine",
+      "data_as_of": "2026-06-05"
+    },
+    {
+      "ticker": "AAPL",
+      "sector": "Information Technology",
+      "peer_group": "mega_cap_hardware",
+      "status": "ok",
+      "error": null,
+      "n_canonical_events": 25,
+      "active_engine": "post_confirmation_trend_engine",
+      "data_as_of": "2026-06-05"
+    },
+    {
+      "ticker": "NVDA",
+      "sector": "Information Technology",
+      "peer_group": "ai_accelerator",
+      "status": "ok",
+      "error": null,
+      "n_canonical_events": 24,
+      "active_engine": "post_confirmation_trend_engine",
+      "data_as_of": "2026-06-05"
+    },
+    {
+      "ticker": "AMZN",
+      "sector": "Consumer Discretionary",
+      "peer_group": "cloud_platform",
+      "status": "ok",
+      "error": null,
+      "n_canonical_events": 40,
+      "active_engine": "post_confirmation_trend_engine",
+      "data_as_of": "2026-06-05"
+    },
+    {
+      "ticker": "GOOGL",
+      "sector": "Communication Services",
+      "peer_group": "search_ads_ai",
+      "status": "ok",
+      "error": null,
+      "n_canonical_events": 37,
+      "active_engine": "unknown_or_transition",
+      "data_as_of": "2026-06-05"
+    },
+    {
+      "ticker": "META",
+      "sector": "Communication Services",
+      "peer_group": "social_ai",
+      "status": "ok",
+      "error": null,
+      "n_canonical_events": 27,
+      "active_engine": "repair_retry_hazard_engine",
+      "data_as_of": "2026-06-05"
+    }
+  ]
+}

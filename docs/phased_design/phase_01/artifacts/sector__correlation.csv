@@ -1,0 +1,11 @@
+group,transition,n,sample_quality,correlation_status,spearman_gap_vs_drawdown,spearman_ci95_low,spearman_ci95_high,pearson_gap_vs_drawdown
+Information Technology,1_to_2,19,medium,computed,0.8681911474696117,0.6860362048484644,0.946205341793524,0.8901371929281
+Information Technology,2_to_3,14,medium,computed,0.9296703296703297,0.7362977888302973,0.982205218561926,0.8897120128133383
+Information Technology,3_to_4,8,low,computed,0.9285714285714287,0.46269841269841294,1.0,0.9813124949937114
+Information Technology,4_to_5,4,low,suppressed_n_lt_5,,,,
+Information Technology,5_to_6,3,low,suppressed_n_lt_5,,,,
+Information Technology,6_to_7,2,very_low,suppressed_n_lt_5,,,,
+Information Technology,7_to_8,2,very_low,suppressed_n_lt_5,,,,
+Information Technology,8_to_9,2,very_low,suppressed_n_lt_5,,,,
+Information Technology,9_to_10,1,very_low,suppressed_n_lt_5,,,,
+Information Technology,all_transitions,55,high,computed,0.906579980979675,0.8342889564911994,0.9410886805009209,0.9109738357427236

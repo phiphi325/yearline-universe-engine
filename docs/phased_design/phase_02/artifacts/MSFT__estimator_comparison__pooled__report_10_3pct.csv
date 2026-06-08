@@ -1,0 +1,8 @@
+method,model_scope,n,estimated_total_gap_days,days_elapsed_since_latest_touch,estimated_remaining_days_from_as_of,rough_retry_date_if_repair_continues,estimate_quality
+matrix interpolation: ALL,ALL,,19.923361293913473,4.0,15.923361293913473,2026-06-21,interpolation
+historical median 2_to_3 gap: peer group: mega_cap_software,peer group: mega_cap_software,9.0,31.0,4.0,27.0,2026-07-02,unconditional_low
+historical median 2_to_3 gap: ALL,ALL,14.0,33.5,4.0,29.5,2026-07-05,unconditional_medium
+nearest neighbors +/-2.5%: ALL; +/-2.5% drawdown band,ALL; +/-2.5% drawdown band,2.0,38.5,4.0,34.5,2026-07-10,conditional_very_low
+Theil-Sen robust fit: ALL,ALL,14.0,58.031918649216024,4.0,54.031918649216024,2026-07-30,medium
+Theil-Sen robust fit: peer group: mega_cap_software,peer group: mega_cap_software,9.0,76.94630010345122,4.0,72.94630010345122,2026-08-17,low
+matrix interpolation: mega_cap_software,mega_cap_software,,80.51436510217368,4.0,76.51436510217368,2026-08-21,interpolation

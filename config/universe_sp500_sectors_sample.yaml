@@ -1,0 +1,50 @@
+# V13 universe: small cross-sector S&P 500 sample.
+# Demonstrates the sector-aware design across distinct GICS sectors and peer
+# groups (not just tech). Useful for exercising sector pooling in V13.3+.
+universe_name: sp500_sectors_sample
+benchmark: SPY
+start: "2009-01-01"
+replay_start: "2020-01-01"
+as_of: null
+
+rolling_windows:
+  ma_fast: 200
+  ma_yearline: 250
+  atr: 14
+
+tickers:
+  - ticker: MSFT
+    sector: Information Technology
+    industry: Software
+    peer_group: mega_cap_software
+    role: cloud_ai_platform
+
+  - ticker: JPM
+    sector: Financials
+    industry: Diversified Banks
+    peer_group: money_center_banks
+    role: global_bank
+
+  - ticker: XOM
+    sector: Energy
+    industry: Integrated Oil & Gas
+    peer_group: integrated_energy
+    role: energy_major
+
+  - ticker: JNJ
+    sector: Health Care
+    industry: Pharmaceuticals
+    peer_group: large_cap_pharma
+    role: diversified_healthcare
+
+  - ticker: WMT
+    sector: Consumer Staples
+    industry: Consumer Staples Merchandise Retail
+    peer_group: staples_retail
+    role: defensive_retailer
+
+  - ticker: CAT
+    sector: Industrials
+    industry: Construction Machinery
+    peer_group: capital_goods
+    role: industrial_cyclical

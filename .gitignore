@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+.DS_Store
+data/replay_state/
+
+# Cache backups (recovery artifacts, not source).
+data/price_cache/_backup_*/
+
+# Proprietary uploaded research inputs (V12 notebook, report PDFs, data export) —
+# kept OUT of this public repo entirely, per the project owner. They live locally
+# for development reference only.
+docs/uploaded/
+
+# Local distribution zip (the engine is the git repo now; zip is a convenience artifact).
+*.zip

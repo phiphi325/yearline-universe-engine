@@ -1,0 +1,73 @@
+# V13 Phase 5 universe — matches the user's mvp_universe yfinance export
+# (docs/uploaded/mvp_universe_yfinance_exports_20260605.zip, all current to 2026-06-05).
+#
+# Grouping mirrors the export's run_manifest: the five mega-caps share ONE peer group
+# (mega_cap_software_like) so the empirical horizon estimator's peer-group scopes are
+# no longer singletons — this is what lets pooling (Phase 5) lift discrimination past
+# the Phase 4 trust gate. NVDA is its own ai_accelerator peer; QQQ/XLK/IGV are ETF
+# context. rolling_windows kept V12-faithful (ma_fast=200) for the parity gate.
+universe_name: mvp_software_like
+benchmark: QQQ
+start: "2009-01-01"
+replay_start: "2020-01-01"
+as_of: null            # null => latest available bar (cache now 2026-06-05)
+
+rolling_windows:
+  ma_fast: 200
+  ma_yearline: 250
+  atr: 14
+
+tickers:
+  - ticker: MSFT
+    sector: software
+    industry: Software
+    peer_group: mega_cap_software_like
+    role: software_cloud_leader
+
+  - ticker: AAPL
+    sector: consumer_tech
+    industry: Consumer Electronics
+    peer_group: mega_cap_software_like
+    role: consumer_platform_leader
+
+  - ticker: GOOGL
+    sector: internet
+    industry: Internet Content & Information
+    peer_group: mega_cap_software_like
+    role: search_cloud_ai_leader
+
+  - ticker: AMZN
+    sector: internet_cloud
+    industry: Internet Retail / Cloud Infrastructure
+    peer_group: mega_cap_software_like
+    role: commerce_cloud_leader
+
+  - ticker: META
+    sector: internet
+    industry: Internet Content & Information
+    peer_group: mega_cap_software_like
+    role: social_ai_platform_leader
+
+  - ticker: NVDA
+    sector: Information Technology
+    industry: Semiconductors
+    peer_group: ai_accelerator
+    role: ai_compute_leader
+
+  - ticker: QQQ
+    sector: nasdaq_100
+    industry: ETF
+    peer_group: etf_context
+    role: nasdaq_100_benchmark_context
+
+  - ticker: XLK
+    sector: technology_etf
+    industry: ETF
+    peer_group: etf_context
+    role: technology_sector_context
+
+  - ticker: IGV
+    sector: software_etf
+    industry: ETF
+    peer_group: etf_context
+    role: software_sector_context

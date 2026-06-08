@@ -1,0 +1,10 @@
+feature,feature_group,live_available,allowed_for_hazard_model,reason
+trading_days_since_touch,time_at_risk,True,True,Elapsed time since source touch is known each day.
+calendar_days_since_touch,time_at_risk,True,True,Calendar elapsed time is known each day.
+drawdown_so_far_pct,live_repair_state,True,True,Maximum damage observed so far; not the final future max drawdown.
+distance_to_ma250_pct,live_repair_state,True,True,Current distance to MA250 is observable.
+required_rebound_to_ma250_pct,live_repair_state,True,True,Computed from current distance to MA250.
+from_canonical_quality,source_touch,True,True,Source touch quality is known after the touch.
+event_retry_today,label,False,False,Hazard label; cannot be used as an input.
+final_gap_days,label,False,False,Future-known total gap; forbidden as a live input.
+next_attempt_success,label,False,False,Future-known quality label; forbidden as a live input.

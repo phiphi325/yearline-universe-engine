@@ -1,0 +1,17 @@
+group,matrix_bucket,interpretation,n,completed_n,successes,pending,sample_quality,median_gap_days,median_drawdown_abs_low_pct,median_below_ma250_abs_low_pct,next_attempt_success_rate,next_attempt_success_posterior,next_attempt_success_wilson_low,next_attempt_success_wilson_high
+ai_accelerator,long_gap__deep_drawdown,structural_damage_or_long_dormancy__trend_readiness_down,3,3,1,0,low,156.0,23.28496847438156,19.01439191813836,0.3333333333333333,0.4,0.0614903152761605,0.7923450448735121
+ai_accelerator,medium_gap__deep_drawdown,damaged_repair__defensive_transition,1,1,0,0,very_low,48.0,12.691622574797911,7.620063976068581,0.0,0.3333333333333333,0.0,0.7934567085261071
+ai_accelerator,medium_gap__medium_drawdown,mixed_or_medium_repair,1,1,0,0,very_low,39.0,7.565989477187052,8.005412093206932,0.0,0.3333333333333333,0.0,0.7934567085261071
+ai_accelerator,short_gap__medium_drawdown,mixed_or_medium_repair,3,3,3,0,low,12.0,5.448238181664755,5.754477289835158,1.0,0.8,0.43849391955098227,1.0
+ai_accelerator,short_gap__shallow_drawdown,healthy_absorption__trend_readiness_up,5,5,0,0,low,7.0,1.7982736317747938,3.785964091622529,0.0,0.14285714285714285,0.0,0.43449149475208104
+mega_cap_hardware,long_gap__deep_drawdown,structural_damage_or_long_dormancy__trend_readiness_down,4,4,2,0,low,134.0,22.182750510859684,22.473714392418117,0.5,0.5,0.15003570882017148,0.8499642911798285
+mega_cap_hardware,medium_gap__deep_drawdown,damaged_repair__defensive_transition,5,5,2,0,low,40.0,12.587815626328736,15.157513367302222,0.4,0.42857142857142855,0.1176182311592533,0.769280067791163
+mega_cap_hardware,short_gap__deep_drawdown,volatile_squeeze__needs_confirmation,1,1,0,0,very_low,9.0,9.21494166681195,6.132586788442063,0.0,0.3333333333333333,0.0,0.7934567085261071
+mega_cap_hardware,short_gap__medium_drawdown,mixed_or_medium_repair,3,3,1,0,low,27.0,6.3863803687142955,6.644737258713751,0.3333333333333333,0.4,0.0614903152761605,0.7923450448735121
+mega_cap_hardware,short_gap__shallow_drawdown,healthy_absorption__trend_readiness_up,3,3,0,0,low,11.0,2.983243034055727,4.047421098253734,0.0,0.2,0.0,0.5615060804490177
+mega_cap_software,long_gap__deep_drawdown,structural_damage_or_long_dormancy__trend_readiness_down,5,5,0,0,low,139.0,15.376008286186805,18.509302210690215,0.0,0.14285714285714285,0.0,0.43449149475208104
+mega_cap_software,medium_gap__deep_drawdown,damaged_repair__defensive_transition,1,1,1,0,very_low,70.0,17.143690664513045,17.595340984181497,1.0,0.6666666666666666,0.20654329147389294,1.0
+mega_cap_software,medium_gap__medium_drawdown,mixed_or_medium_repair,5,5,2,0,low,36.0,6.436567782709046,6.0608275989176175,0.4,0.42857142857142855,0.1176182311592533,0.769280067791163
+mega_cap_software,medium_gap__shallow_drawdown,orderly_repair__watch_for_retry,1,1,1,0,very_low,31.0,4.798779724267776,4.566453542422277,1.0,0.6666666666666666,0.20654329147389294,1.0
+mega_cap_software,short_gap__medium_drawdown,mixed_or_medium_repair,2,2,1,0,very_low,18.5,6.297409163768675,7.245412149297886,0.5,0.5,0.09452865480086614,0.9054713451991339
+mega_cap_software,short_gap__shallow_drawdown,healthy_absorption__trend_readiness_up,12,12,4,0,medium,7.0,1.5604294892746673,2.705196691336292,0.3333333333333333,0.35714285714285715,0.13811783989736134,0.609382412602386

@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://option-mgmt-2026.local/schemas/statistical-context/v13.schema.json",
+  "title": "SingleTickerStatisticalContextEnvelope",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "context_version",
+    "model_stack_version",
+    "as_of",
+    "ticker",
+    "sector",
+    "peer_group",
+    "active_engine_context",
+    "repair_retry_context",
+    "retry_hazard_context",
+    "post_confirmation_trend_context",
+    "calibration_context",
+    "option_overlay_research_hint",
+    "warnings",
+    "disclaimers"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "context_version": {
+      "type": "string"
+    },
+    "model_stack_version": {
+      "type": "string"
+    },
+    "as_of": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "ticker": {
+      "type": "string"
+    },
+    "sector": {
+      "type": "string"
+    },
+    "peer_group": {
+      "type": "string"
+    },
+    "active_engine_context": {
+      "type": "object"
+    },
+    "repair_retry_context": {
+      "type": "object"
+    },
+    "retry_hazard_context": {
+      "type": "object"
+    },
+    "post_confirmation_trend_context": {
+      "type": "object"
+    },
+    "retry_timing_context": {
+      "type": "object"
+    },
+    "calibration_context": {
+      "type": "object"
+    },
+    "option_overlay_research_hint": {
+      "type": "object"
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "disclaimers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}

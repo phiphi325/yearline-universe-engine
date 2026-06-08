@@ -1,0 +1,258 @@
+{
+  "schema_version": "v13_single_ticker_statistical_context_envelope",
+  "context_version": "v13.1",
+  "model_stack_version": "yearline_universe_v13.1",
+  "as_of": "2026-06-05",
+  "ticker": "META",
+  "sector": "Communication Services",
+  "peer_group": "social_ai",
+  "source": {
+    "engine": "yearline_universe_v13",
+    "universe_name": "mega_cap_ai_infra",
+    "upstream_data_start": "2009-01-01",
+    "replay_start": "2020-01-01",
+    "data_provider": "cache",
+    "data_as_of": "2026-06-05"
+  },
+  "active_engine_context": {
+    "active_engine": "repair_retry_hazard_engine",
+    "mode_state": "failed_repair_deep_below",
+    "handoff_interpretation": "Repair / retry engine is active. Focus on distance to MA250, required rebound, repair drawdown, and gated retry probabilities."
+  },
+  "repair_retry_context": {
+    "active": true,
+    "mode_state": "failed_repair_deep_below",
+    "distance_to_ma250_pct": -12.06575081927106,
+    "required_rebound_to_ma250_pct": 13.721332622596961,
+    "drawdown_so_far_pct": 13.203198688980644,
+    "below_ma250_depth_so_far_pct": 13.561971642978099
+  },
+  "retry_hazard_context": {
+    "active": true,
+    "hazard_today": 2.882441491335651e-10,
+    "p_retry_within_10d": 0.29056603773584905,
+    "p_retry_within_20d": 0.38867924528301884,
+    "p_retry_within_40d": 0.47924528301886793,
+    "p_retry_within_60d": 0.5547169811320755,
+    "survival_60d": 0.44528301886792454,
+    "probability_policy": "v13_empirical_horizon_calibrated",
+    "p_retry_within_40d_reference_n": 530,
+    "p_retry_within_40d_reference_scope": "universe_all_completed_transitions",
+    "diagnostic_model_state_hold_forward": {
+      "policy": "diagnostic_model_state_hold_forward_not_canonical",
+      "p_retry_within_10d": 1.6649079892516738e-09,
+      "p_retry_within_20d": 2.0773862630107942e-09,
+      "p_retry_within_40d": 2.2048949332997836e-09,
+      "p_retry_within_60d": 2.2127211174449712e-09,
+      "note": "Frozen-state forward extrapolation; saturates to 1.0 for deep-below states. Not canonical."
+    },
+    "semantics": "active_repair_retry_metric"
+  },
+  "post_confirmation_trend_context": {
+    "active": false,
+    "trend_state": null,
+    "trend_quality_score": null,
+    "pullback_quality_score": null,
+    "overextension_score": null,
+    "deterioration_risk_score": null,
+    "drawdown_from_post_confirmation_peak_pct": null,
+    "days_since_confirmation": null,
+    "semantics": "inactive_until_yearline_acceptance"
+  },
+  "retry_timing_context": {
+    "schema": "v13_retry_timing_conditional_estimators",
+    "active": true,
+    "is_descriptive_evidence_not_forecast": true,
+    "must_not_auto_execute": true,
+    "conditioning_scope": "single_ticker_self_conditioned",
+    "active_engine": "repair_retry_hazard_engine",
+    "n_conditioning_transitions": 0,
+    "sample_quality": "very_low",
+    "setup": {
+      "ticker": "META",
+      "group": "social_ai",
+      "as_of_date": "2026-06-05",
+      "latest_touch_date": "2026-04-15",
+      "latest_attempt_no": 9,
+      "target_transition": "9_to_10",
+      "latest_outcome": "fail",
+      "latest_state": "below_yearline_after_latest_touch",
+      "latest_mode_state": "reflexive_reversal_or_failed_repair",
+      "days_elapsed_since_latest_touch": 51,
+      "trading_days_elapsed_since_latest_touch": 36,
+      "current_distance_to_ma250_pct": -12.07,
+      "required_rebound_to_ma250_pct": 13.72682815876265,
+      "live_drawdown_since_touch_low_abs_pct": 13.2,
+      "drawdown_assumption_abs_pct": 13.2,
+      "drawdown_assumption_source": "live_current_drawdown_so_far",
+      "assumption_note": "Assumes current post-touch drawdown is the maximum damage before the next retry."
+    },
+    "consensus": {
+      "available": true,
+      "n_methods_total": 2,
+      "n_methods_used": 2,
+      "consensus_basis": "reliable_methods_only",
+      "central_total_gap_days": 24.98070772605514,
+      "central_remaining_days": 0.0,
+      "remaining_days_range": [
+        0.0,
+        0.0
+      ],
+      "rough_central_retry_date_if_repair_continues": "2026-06-05",
+      "rough_earliest_retry_date_if_repair_continues": "2026-06-05",
+      "rough_latest_retry_date_if_repair_continues": "2026-06-05",
+      "framing": "Evidence-based conditional window across methods; central = median of (non-fragile) method remaining-days. The spread reflects method and scope (universe-pooled vs peer/self). Not a forecast or a predicted date."
+    },
+    "estimators": [
+      {
+        "method": "matrix interpolation: ALL",
+        "model_scope": "ALL",
+        "estimated_total_gap_days": 24.98070772605514,
+        "drawdown_assumption_abs_pct": 13.2,
+        "lower_anchor_bucket": "short_gap__deep_drawdown",
+        "lower_anchor_drawdown_pct": 9.32386580031786,
+        "lower_anchor_gap_days": 17.5,
+        "upper_anchor_bucket": "medium_gap__deep_drawdown",
+        "upper_anchor_drawdown_pct": 22.018558785240984,
+        "upper_anchor_gap_days": 42.0,
+        "interpolation_weight": 0.30533500922674045,
+        "estimate_quality": "interpolation",
+        "days_elapsed_since_latest_touch": 51.0,
+        "estimated_remaining_days_from_as_of": 0.0,
+        "rough_retry_date_if_repair_continues": "2026-06-05"
+      },
+      {
+        "method": "matrix interpolation: social_ai",
+        "model_scope": "social_ai",
+        "estimated_total_gap_days": 24.98070772605514,
+        "drawdown_assumption_abs_pct": 13.2,
+        "lower_anchor_bucket": "short_gap__deep_drawdown",
+        "lower_anchor_drawdown_pct": 9.32386580031786,
+        "lower_anchor_gap_days": 17.5,
+        "upper_anchor_bucket": "medium_gap__deep_drawdown",
+        "upper_anchor_drawdown_pct": 22.018558785240984,
+        "upper_anchor_gap_days": 42.0,
+        "interpolation_weight": 0.30533500922674045,
+        "estimate_quality": "interpolation",
+        "days_elapsed_since_latest_touch": 51.0,
+        "estimated_remaining_days_from_as_of": 0.0,
+        "rough_retry_date_if_repair_continues": "2026-06-05"
+      }
+    ],
+    "base_distribution": [
+      {
+        "scope": "ALL / target transition",
+        "n": 0,
+        "completed_n": 0,
+        "mean_gap_days": null,
+        "median_gap_days": null,
+        "p25_gap_days": null,
+        "p75_gap_days": null,
+        "p90_gap_days": null,
+        "median_drawdown_abs_low_pct": null,
+        "success_rate": null,
+        "posterior_success_rate": null,
+        "wilson_low": null,
+        "wilson_high": null,
+        "sample_quality": "none"
+      },
+      {
+        "scope": "peer group: social_ai",
+        "n": 0,
+        "completed_n": 0,
+        "mean_gap_days": null,
+        "median_gap_days": null,
+        "p25_gap_days": null,
+        "p75_gap_days": null,
+        "p90_gap_days": null,
+        "median_drawdown_abs_low_pct": null,
+        "success_rate": null,
+        "posterior_success_rate": null,
+        "wilson_low": null,
+        "wilson_high": null,
+        "sample_quality": "none"
+      },
+      {
+        "scope": "ticker history: META",
+        "n": 0,
+        "completed_n": 0,
+        "mean_gap_days": null,
+        "median_gap_days": null,
+        "p25_gap_days": null,
+        "p75_gap_days": null,
+        "p90_gap_days": null,
+        "median_drawdown_abs_low_pct": null,
+        "success_rate": null,
+        "posterior_success_rate": null,
+        "wilson_low": null,
+        "wilson_high": null,
+        "sample_quality": "none"
+      }
+    ],
+    "nearest_neighbor_summary": [],
+    "nearest_observations": [],
+    "disclaimers": [
+      "Conditional on the assumption that current drawdown is the maximum damage before the next retry.",
+      "Descriptive historical evidence, not a forward forecast or a predicted date.",
+      "Estimates are a range across methods; small conditioning samples are statistically fragile.",
+      "Recompute as days-since-touch, distance-to-MA250, and drawdown update.",
+      "Not financial advice; evidence overlay only; must not auto-execute."
+    ]
+  },
+  "calibration_context": {
+    "available": false,
+    "summary": [],
+    "warning": "Calibration not run (pass calibrate=True). Hazard probabilities are an uncalibrated prototype; horizon calibration + gating is V13.7 / Phase 4.",
+    "hazard_model_card": {
+      "status": "ok",
+      "model_name": "DiscreteTimeLogisticHazard",
+      "model_version": "v13_discrete_time_logistic_hazard",
+      "n_train_daily_rows": 530,
+      "n_event_rows": 19,
+      "event_row_rate": 0.035849056603773584,
+      "feature_names": [
+        "trading_days_since_touch",
+        "calendar_days_since_touch",
+        "drawdown_so_far_pct",
+        "below_ma250_depth_so_far_pct",
+        "distance_to_ma250_pct",
+        "required_rebound_to_ma250_pct",
+        "from_touch_day_overshoot_pct",
+        "from_fixed_5d_overshoot_pct",
+        "attempt_no",
+        "transition_1_to_2",
+        "transition_2_to_3",
+        "transition_3_to_4",
+        "transition_4_to_5",
+        "transition_5_to_6",
+        "transition_6_to_7",
+        "transition_7_to_8",
+        "transition_8_to_9",
+        "group_social_ai",
+        "from_canonical_quality_unknown"
+      ],
+      "model_quality": "prototype_uncalibrated",
+      "model_warning": "Discrete-time hazard MVP; probabilities are not production-calibrated."
+    },
+    "training_scope": "single_ticker_self_fit"
+  },
+  "option_overlay_research_hint": {
+    "active_engine": "repair_retry_hazard_engine",
+    "research_hint": "defensive_repair_wait_or_light_hedge_context",
+    "candidate_action_bias": [
+      "BUY_LONG_DATED_PUT",
+      "OPEN_COLLAR",
+      "NO_OP"
+    ],
+    "must_not_auto_execute": true
+  },
+  "warnings": [
+    "calibration_metrics_unavailable",
+    "context_is_research_overlay_not_trading_signal",
+    "do_not_modify_locked_regime_taxonomy_without_repo_migration"
+  ],
+  "disclaimers": [
+    "Educational research only. Not financial advice.",
+    "This context is an evidence overlay and must not auto-execute trades."
+  ]
+}

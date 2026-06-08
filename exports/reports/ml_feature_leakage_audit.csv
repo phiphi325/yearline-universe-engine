@@ -1,0 +1,18 @@
+feature,feature_group,live_available,allowed_for_training,allowed_for_live_scoring,reason
+ticker,identity,True,True,True,Ticker identity is known at scoring time.
+group,identity,True,True,True,Peer group is known at scoring time.
+transition,state,True,True,True,Current target transition (e.g. 2_to_3) is known.
+attempt_no,state,True,True,True,Current attempt number is known.
+from_canonical_quality,event_quality,True,True,True,Quality of the source touch is known after the source event.
+days_since_last_touch,live_repair_state,True,True,True,Elapsed time since source touch is live observable.
+drawdown_so_far_pct,live_repair_state,True,True,True,Current maximum damage so far is live observable.
+below_ma250_depth_so_far_pct,live_repair_state,True,True,True,Below-yearline depth so far is live observable.
+distance_to_ma250_pct,live_repair_state,True,True,True,Current price distance to MA250 is live observable.
+required_rebound_to_ma250_pct,live_repair_state,True,True,True,Computed from current distance to MA250.
+from_touch_day_overshoot_pct,source_touch,True,True,True,Touch-day overshoot is known after source touch day.
+from_fixed_5d_overshoot_pct,source_touch,True,True,True,Allowed only after the fixed window has elapsed; otherwise null.
+gap_days,label,False,False,False,Target for timing model; unknown for live transition.
+next_attempt_success,label,False,False,False,Target for quality model; future-known.
+episode_outcome,label,False,False,False,Post-hoc episode label; not a live input.
+future_max_drawdown,forbidden_future,False,False,False,Uses future path after scoring time.
+lifecycle_peak_overshoot,post_hoc_morphology,False,False,False,Full lifecycle peak is post-hoc morphology.

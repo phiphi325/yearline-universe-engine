@@ -1,0 +1,8 @@
+group,matrix_bucket,interpretation,n,completed_n,successes,pending,sample_quality,median_gap_days,median_drawdown_abs_low_pct,median_below_ma250_abs_low_pct,next_attempt_success_rate,next_attempt_success_posterior,next_attempt_success_wilson_low,next_attempt_success_wilson_high
+ALL,long_gap__deep_drawdown,structural_damage_or_long_dormancy__trend_readiness_down,12,12,3,0,medium,139.5,22.182750510859684,20.491896499324902,0.25,0.2857142857142857,0.08894003962896138,0.53231033912066
+ALL,medium_gap__deep_drawdown,damaged_repair__defensive_transition,7,7,3,0,low,44.0,12.691622574797911,15.157513367302222,0.42857142857142855,0.4444444444444444,0.15821692226262685,0.7495457695909742
+ALL,medium_gap__medium_drawdown,mixed_or_medium_repair,6,6,2,0,low,36.0,6.690465374200944,6.565175664501171,0.3333333333333333,0.375,0.09676933255921683,0.7000116786584712
+ALL,medium_gap__shallow_drawdown,orderly_repair__watch_for_retry,1,1,1,0,very_low,31.0,4.798779724267776,4.566453542422277,1.0,0.6666666666666666,0.20654329147389294,1.0
+ALL,short_gap__deep_drawdown,volatile_squeeze__needs_confirmation,1,1,0,0,very_low,9.0,9.21494166681195,6.132586788442063,0.0,0.3333333333333333,0.0,0.7934567085261071
+ALL,short_gap__medium_drawdown,mixed_or_medium_repair,8,8,5,0,low,18.5,6.1556572591256185,6.838577240646233,0.625,0.6,0.30573785458380187,0.863158240538479
+ALL,short_gap__shallow_drawdown,healthy_absorption__trend_readiness_up,20,20,4,0,medium,7.0,1.7591844547255042,3.378672992376713,0.2,0.22727272727272727,0.0806563532712,0.41602172202575993

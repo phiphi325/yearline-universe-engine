@@ -1,0 +1,119 @@
+{
+  "schema_version": "v13_single_ticker_statistical_context_envelope",
+  "context_version": "v13.1",
+  "model_stack_version": "yearline_universe_v13.1",
+  "as_of": "2026-06-05",
+  "ticker": "AAPL",
+  "sector": "Information Technology",
+  "peer_group": "mega_cap_hardware",
+  "source": {
+    "engine": "yearline_universe_v13",
+    "universe_name": "mega_cap_ai_infra",
+    "upstream_data_start": "2009-01-01",
+    "replay_start": "2020-01-01",
+    "data_provider": "cache",
+    "data_as_of": "2026-06-05"
+  },
+  "active_engine_context": {
+    "active_engine": "post_confirmation_trend_engine",
+    "mode_state": "accepted_above_watch",
+    "handoff_interpretation": "Post-confirmation trend engine is active. Retry-hazard metrics are not applicable; focus on trend quality, pullback quality, overextension, and deterioration risk."
+  },
+  "repair_retry_context": {
+    "active": false,
+    "mode_state": "accepted_above_watch",
+    "distance_to_ma250_pct": 21.09683592626088,
+    "required_rebound_to_ma250_pct": 0.0,
+    "drawdown_so_far_pct": 4.403752370944947,
+    "below_ma250_depth_so_far_pct": 1.0486659612318872
+  },
+  "retry_hazard_context": {
+    "active": false,
+    "hazard_today": null,
+    "p_retry_within_10d": null,
+    "p_retry_within_20d": null,
+    "p_retry_within_40d": null,
+    "p_retry_within_60d": null,
+    "survival_60d": null,
+    "probability_policy": null,
+    "p_retry_within_40d_reference_n": null,
+    "p_retry_within_40d_reference_scope": null,
+    "diagnostic_model_state_hold_forward": null,
+    "semantics": "not_applicable_post_confirmation_handoff"
+  },
+  "post_confirmation_trend_context": {
+    "active": true,
+    "trend_state": "healthy_trend",
+    "trend_quality_score": 0.9584390032743186,
+    "pullback_quality_score": 0.9584390032743186,
+    "overextension_score": 0.6555627547013043,
+    "deterioration_risk_score": 0.041560996725681365,
+    "drawdown_from_post_confirmation_peak_pct": 2.493659803540882,
+    "days_since_confirmation": 207,
+    "semantics": "active_post_confirmation_metric"
+  },
+  "retry_timing_context": {
+    "schema": "v13_retry_timing_conditional_estimators",
+    "active": false,
+    "reason": "repair_engine_dormant_or_accepted_above_yearline",
+    "active_engine": "post_confirmation_trend_engine",
+    "live_state": "accepted_above_yearline",
+    "note": "Conditional retry-timing is only computed while the repair/retry engine is active (price below or testing MA250 with a pending next touch).",
+    "must_not_auto_execute": true
+  },
+  "calibration_context": {
+    "available": false,
+    "summary": [],
+    "warning": "Calibration not run (pass calibrate=True). Hazard probabilities are an uncalibrated prototype; horizon calibration + gating is V13.7 / Phase 4.",
+    "hazard_model_card": {
+      "status": "ok",
+      "model_name": "DiscreteTimeLogisticHazard",
+      "model_version": "v13_discrete_time_logistic_hazard",
+      "n_train_daily_rows": 696,
+      "n_event_rows": 16,
+      "event_row_rate": 0.022988505747126436,
+      "feature_names": [
+        "trading_days_since_touch",
+        "calendar_days_since_touch",
+        "drawdown_so_far_pct",
+        "below_ma250_depth_so_far_pct",
+        "distance_to_ma250_pct",
+        "required_rebound_to_ma250_pct",
+        "from_touch_day_overshoot_pct",
+        "from_fixed_5d_overshoot_pct",
+        "attempt_no",
+        "transition_1_to_2",
+        "transition_2_to_3",
+        "transition_3_to_4",
+        "transition_4_to_5",
+        "transition_5_to_6",
+        "transition_6_to_7",
+        "transition_7_to_8",
+        "transition_8_to_9",
+        "group_mega_cap_hardware",
+        "from_canonical_quality_unknown"
+      ],
+      "model_quality": "prototype_uncalibrated",
+      "model_warning": "Discrete-time hazard MVP; probabilities are not production-calibrated."
+    },
+    "training_scope": "single_ticker_self_fit"
+  },
+  "option_overlay_research_hint": {
+    "active_engine": "post_confirmation_trend_engine",
+    "research_hint": "preserve_upside_convexity_light_income_only",
+    "candidate_action_bias": [
+      "NO_OP",
+      "SELL_COVERED_CALL_PARTIAL"
+    ],
+    "must_not_auto_execute": true
+  },
+  "warnings": [
+    "calibration_metrics_unavailable",
+    "context_is_research_overlay_not_trading_signal",
+    "do_not_modify_locked_regime_taxonomy_without_repo_migration"
+  ],
+  "disclaimers": [
+    "Educational research only. Not financial advice.",
+    "This context is an evidence overlay and must not auto-execute trades."
+  ]
+}

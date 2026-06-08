@@ -1,0 +1,10 @@
+ticker,group,asset_type,sector,industry,peer_group,role,is_etf,rows,first_date,last_date,starts_on_requested_start,duplicate_dates,missing_open,missing_high,missing_low,missing_close,missing_adj_close,missing_volume,first_return_is_nan,returns_missing_after_first
+NVDA,ai_accelerator,equity,Information Technology,Semiconductors,ai_accelerator,ai_compute_leader,False,4383,2009-01-02,2026-06-05,False,0,0,0,0,0,0,0,True,0
+IGV,etf_context,etf,software_etf,ETF,sector_context,software_sector_context,True,4383,2009-01-02,2026-06-05,False,0,0,0,0,0,0,0,True,0
+QQQ,etf_context,etf,nasdaq_100,ETF,index_context,nasdaq_100_benchmark_context,True,4383,2009-01-02,2026-06-05,False,0,0,0,0,0,0,0,True,0
+XLK,etf_context,etf,technology_etf,ETF,sector_context,technology_sector_context,True,4383,2009-01-02,2026-06-05,False,0,0,0,0,0,0,0,True,0
+AAPL,mega_cap_software_like,equity,consumer_tech,Consumer Electronics,mega_cap_software_like,consumer_platform_leader,False,4383,2009-01-02,2026-06-05,False,0,0,0,0,0,0,0,True,0
+AMZN,mega_cap_software_like,equity,internet_cloud,Internet Retail / Cloud Infrastructure,mega_cap_software_like,commerce_cloud_leader,False,4383,2009-01-02,2026-06-05,False,0,0,0,0,0,0,0,True,0
+GOOGL,mega_cap_software_like,equity,internet,Internet Content & Information,mega_cap_software_like,search_cloud_ai_leader,False,4383,2009-01-02,2026-06-05,False,0,0,0,0,0,0,0,True,0
+META,mega_cap_software_like,equity,internet,Internet Content & Information,mega_cap_software_like,social_ai_platform_leader,False,3532,2012-05-18,2026-06-05,False,0,0,0,0,0,0,0,True,0
+MSFT,mega_cap_software_like,equity,software,Software,mega_cap_software_like,software_cloud_leader,False,4383,2009-01-02,2026-06-05,False,0,0,0,0,0,0,0,True,0

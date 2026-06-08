@@ -1,0 +1,53 @@
+# V13 universe: mega-cap AI / infrastructure cohort.
+# Universe-first, sector-aware. No ticker is the centre of the system.
+#
+# rolling_windows are kept at V12-faithful values (ma_fast=200, not the spec's
+# illustrative 50) so the MSFT V10 parity regression gate still passes. Override
+# only if you intend to change the methodology.
+universe_name: mega_cap_ai_infra
+benchmark: SPY
+start: "2009-01-01"
+replay_start: "2020-01-01"
+as_of: null            # null => use latest available bar (cache now current to 2026-06-05)
+
+rolling_windows:
+  ma_fast: 200         # V12-faithful (StudyConfig.ma_fast_len); spec example used 50
+  ma_yearline: 250
+  atr: 14
+
+tickers:
+  - ticker: MSFT
+    sector: Information Technology
+    industry: Software
+    peer_group: mega_cap_software
+    role: cloud_ai_platform
+
+  - ticker: AAPL
+    sector: Information Technology
+    industry: Hardware
+    peer_group: mega_cap_hardware
+    role: consumer_hardware_platform
+
+  - ticker: NVDA
+    sector: Information Technology
+    industry: Semiconductors
+    peer_group: ai_accelerator
+    role: ai_compute_leader
+
+  - ticker: AMZN
+    sector: Consumer Discretionary
+    industry: Internet Retail
+    peer_group: cloud_platform
+    role: cloud_ai_platform
+
+  - ticker: GOOGL
+    sector: Communication Services
+    industry: Interactive Media
+    peer_group: search_ads_ai
+    role: ai_platform
+
+  - ticker: META
+    sector: Communication Services
+    industry: Interactive Media
+    peer_group: social_ai
+    role: ai_platform
