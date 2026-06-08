@@ -69,6 +69,13 @@ from .blend_surface import (
     build_blend_context,
     BLEND_SURFACE_VERSION,
 )
+from .success_labels import (
+    build_success_dataset,
+    build_empirical_success_reference,
+    empirical_success_probability_for_row,
+    SUCCESS_STATE_FEATURES,
+    SUCCESS_PROB_POLICY,
+)
 from .validation import (
     validate_ticker_sanity,
     validate_reference_parity,
@@ -120,6 +127,11 @@ __all__ = [
     "apply_blend_live",
     "build_blend_context",
     "BLEND_SURFACE_VERSION",
+    "build_success_dataset",
+    "build_empirical_success_reference",
+    "empirical_success_probability_for_row",
+    "SUCCESS_STATE_FEATURES",
+    "SUCCESS_PROB_POLICY",
     "validate_ticker_sanity",
     "validate_reference_parity",
     "ml_feature_leakage_audit",

@@ -1,0 +1,15 @@
+{
+  "n_attempts": 162,
+  "base_rate": 0.35185185185185186,
+  "brier_model": 0.2320095658874514,
+  "brier_base": 0.22805212620027435,
+  "beats_base": false,
+  "auc": 0.4895572263993317,
+  "scope_usage": {
+    "drawdown": 6,
+    "group": 7,
+    "group_drawdown": 28,
+    "group_transition": 97,
+    "transition": 24
+  }
+}

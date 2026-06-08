@@ -32,6 +32,7 @@ and Phase 4 ports the V12.6 harness that scores it.
 | **5** | Supporting — **pooled** hazard/reference/calibration training + universe **data freshness** (9 tickers current). **Pooling clears the Phase 4 trust gate at 10/20/40d.** | ✅ DELIVERED | [phase_05/](phase_05/) |
 | **6** | **Honest gate** — gate on an out-of-fold (purged-by-transition) isotonic-calibrated MACE, not the in-sample-optimistic value. Tightens 40d; shows 60d is sample/regime-limited (honest abstention). | ✅ DELIVERED | [phase_06/](phase_06/) |
 | **7** | **Discrimination, not recalibration** — leakage-safe path + cross-sectional features → a direct horizon **classifier**, validated under **leave-one-ticker-out**; the classifier↔empirical **blend** beats both on AUC + calibration at every horizon (incl. a gate-passing 60d). Shipped as an **opt-in, additive, gated** envelope overlay (`surface_blend`); empirical stays canonical. | ✅ DELIVERED | [phase_07/](phase_07/) |
+| **8** | **Retry-success (Track A)** — make `P(success │ retry)` trustworthy (distinct from retry *occurrence*). **RS-1 delivered:** leakage-safe attempt-level success dataset (162 attempts, base rate 0.352) + empirical base-rate-by-bucket estimator — which **does not beat the flat base rate** (AUC ≈ 0.49), an honest "not yet" that sets the bar for RS-2. RS-2/3/4 next. | ◐ IN PROGRESS | [phase_08/](phase_08/) |
 
 Recommended order: 1 → 2 (ship validated value) → 3 → 4 (make any probability
 trustworthy), with 5 supporting throughout, then 6 (honest gate) and 7 (discrimination).
