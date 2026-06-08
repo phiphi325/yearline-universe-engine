@@ -1,0 +1,378 @@
+{
+  "available": true,
+  "model_version": "v13_phase7_generalization",
+  "n_rows": 4765,
+  "n_transitions": 162,
+  "n_tickers": 9,
+  "features_used": [
+    "trading_days_since_touch",
+    "drawdown_so_far_pct",
+    "below_ma250_depth_so_far_pct",
+    "from_touch_day_overshoot_pct",
+    "attempt_no",
+    "return_5d",
+    "return_10d",
+    "return_20d",
+    "distance_to_ma20_pct",
+    "distance_to_ma50_pct",
+    "price_above_ma20",
+    "price_above_ma50",
+    "ma20_change_10d_pct",
+    "ma50_change_20d_pct",
+    "repair_gap_pct",
+    "distance_to_ma250_change_5d",
+    "distance_to_ma250_change_10d",
+    "distance_to_ma250_change_20d",
+    "distance_to_ma250_slope_10d",
+    "realized_vol_20d",
+    "realized_vol_20d_pctile_252d",
+    "range_compression_10d",
+    "mkt_distance_to_ma250_pct",
+    "mkt_above_ma250",
+    "mkt_return_20d",
+    "mkt_distance_to_ma250_change_20d",
+    "xs_breadth_frac_above_ma250",
+    "xs_return_20d_dispersion",
+    "rel_return_20d_vs_xs_median",
+    "rel_distance_to_ma250_vs_xs_median"
+  ],
+  "cv": "transition_purged_groupkfold vs leave_one_ticker_out",
+  "blend_grid_classifier_weight": [
+    0.0,
+    0.25,
+    0.5,
+    0.75,
+    1.0
+  ],
+  "gate_thresholds": {
+    "min_auc": 0.6,
+    "max_mace": 0.1,
+    "min_n": 50
+  },
+  "horizons": [
+    {
+      "horizon_days": 10,
+      "status": "ok",
+      "n": 4765,
+      "n_tickers": 9,
+      "base_rate": 0.29716684155299056,
+      "transition_purged": {
+        "classifier_weighted": {
+          "auc": 0.8110364338456711,
+          "mace": 0.10907118522572831,
+          "ece": 0.08914331337212406,
+          "quantile_mace": 0.08971406061849316,
+          "reliability_slope": 0.7545492147872316,
+          "brier": 0.16994575874301698,
+          "n": 4765
+        },
+        "empirical": {
+          "auc": 0.8162760027869016,
+          "mace": 0.03639081626845684,
+          "ece": 0.03003147942021653,
+          "quantile_mace": 0.030234438642838347,
+          "reliability_slope": 1.0654881703314645,
+          "brier": 0.1539923690409018,
+          "n": 4765
+        }
+      },
+      "ticker_loo": {
+        "classifier_weighted": {
+          "auc": 0.8154940845821251,
+          "mace": 0.10257904571179055,
+          "ece": 0.08537679832002101,
+          "quantile_mace": 0.08484975224518289,
+          "reliability_slope": 0.7637029408317817,
+          "brier": 0.16705758210768104,
+          "n": 4765
+        },
+        "classifier_unweighted": {
+          "auc": 0.8141771808095173,
+          "mace": 0.04537329313859554,
+          "ece": 0.028415726834550473,
+          "quantile_mace": 0.03168835634371303,
+          "reliability_slope": 0.8701987091010004,
+          "brier": 0.1578286484087967,
+          "n": 4765
+        },
+        "empirical": {
+          "auc": 0.8169761021504016,
+          "mace": 0.047421952487131956,
+          "ece": 0.029971838343099487,
+          "quantile_mace": 0.026496172436193666,
+          "reliability_slope": 1.0749148308741043,
+          "brier": 0.15354599744968817,
+          "n": 4765
+        }
+      },
+      "generalization_gap_auc": -0.004457650736453989,
+      "weighting_effect_auc": 0.001316903772607847,
+      "blend_ticker_loo": {
+        "available": true,
+        "best_w_classifier_weight": 0.25,
+        "n": 4765,
+        "auc": 0.834817881381237,
+        "mace": 0.049517053570567196,
+        "ece": 0.0386033890863968,
+        "quantile_mace": 0.040729456385331576,
+        "reliability_slope": 1.1064318851713728,
+        "brier": 0.1473773865145265,
+        "classifier_alone": {
+          "auc": 0.8154940845821251,
+          "mace": 0.10257904571179055,
+          "brier": 0.16705758210768104
+        },
+        "empirical_alone": {
+          "auc": 0.8169761021504016,
+          "mace": 0.047421952487131956,
+          "brier": 0.15354599744968817
+        }
+      }
+    },
+    {
+      "horizon_days": 20,
+      "status": "ok",
+      "n": 4765,
+      "n_tickers": 9,
+      "base_rate": 0.4472193074501574,
+      "transition_purged": {
+        "classifier_weighted": {
+          "auc": 0.7901283329894919,
+          "mace": 0.1001554167743987,
+          "ece": 0.10981257970819899,
+          "quantile_mace": 0.10852952239445648,
+          "reliability_slope": 0.7681745385936821,
+          "brier": 0.19924585267845554,
+          "n": 4765
+        },
+        "empirical": {
+          "auc": 0.7791442947101525,
+          "mace": 0.04812396810629951,
+          "ece": 0.04329747050409109,
+          "quantile_mace": 0.05450314709085585,
+          "reliability_slope": 1.006549947742249,
+          "brier": 0.1888547794696687,
+          "n": 4765
+        }
+      },
+      "ticker_loo": {
+        "classifier_weighted": {
+          "auc": 0.8114628863360303,
+          "mace": 0.09443836900539875,
+          "ece": 0.09691525975519956,
+          "quantile_mace": 0.09536007709753344,
+          "reliability_slope": 0.8156333218282291,
+          "brier": 0.18698802574172899,
+          "n": 4765
+        },
+        "classifier_unweighted": {
+          "auc": 0.8012037653655211,
+          "mace": 0.04652922959587415,
+          "ece": 0.038003967762356435,
+          "quantile_mace": 0.03545855693315521,
+          "reliability_slope": 0.8656791002774056,
+          "brier": 0.18147876566188473,
+          "n": 4765
+        },
+        "empirical": {
+          "auc": 0.7854659869653846,
+          "mace": 0.04086951168559472,
+          "ece": 0.036169867160340013,
+          "quantile_mace": 0.04311677610260682,
+          "reliability_slope": 1.0400140726003055,
+          "brier": 0.18634027750107252,
+          "n": 4765
+        }
+      },
+      "generalization_gap_auc": -0.021334553346538332,
+      "weighting_effect_auc": 0.010259120970509183,
+      "blend_ticker_loo": {
+        "available": true,
+        "best_w_classifier_weight": 0.5,
+        "n": 4765,
+        "auc": 0.8194179140268381,
+        "mace": 0.04318548619818298,
+        "ece": 0.04034559601980038,
+        "quantile_mace": 0.04099967827240819,
+        "reliability_slope": 1.0210023375244677,
+        "brier": 0.17421994568726057,
+        "classifier_alone": {
+          "auc": 0.8114628863360303,
+          "mace": 0.09443836900539875,
+          "brier": 0.18698802574172899
+        },
+        "empirical_alone": {
+          "auc": 0.7854659869653846,
+          "mace": 0.04086951168559472,
+          "brier": 0.18634027750107252
+        }
+      }
+    },
+    {
+      "horizon_days": 40,
+      "status": "ok",
+      "n": 4765,
+      "n_tickers": 9,
+      "base_rate": 0.6203567681007345,
+      "transition_purged": {
+        "classifier_weighted": {
+          "auc": 0.795661782801524,
+          "mace": 0.07195871501168982,
+          "ece": 0.09622585861139948,
+          "quantile_mace": 0.09402340959060895,
+          "reliability_slope": 0.8213279880999427,
+          "brier": 0.17659645560370923,
+          "n": 4765
+        },
+        "empirical": {
+          "auc": 0.7624476287933358,
+          "mace": 0.07737397130730406,
+          "ece": 0.06323688299109097,
+          "quantile_mace": 0.0665195529905816,
+          "reliability_slope": 0.9516206408296666,
+          "brier": 0.18414835258301293,
+          "n": 4765
+        }
+      },
+      "ticker_loo": {
+        "classifier_weighted": {
+          "auc": 0.7997297380186723,
+          "mace": 0.07752360264504556,
+          "ece": 0.09439347386661372,
+          "quantile_mace": 0.09367441218742606,
+          "reliability_slope": 0.8159973577442061,
+          "brier": 0.17687323259326265,
+          "n": 4765
+        },
+        "classifier_unweighted": {
+          "auc": 0.7885946152562999,
+          "mace": 0.05150664431488263,
+          "ece": 0.05198078678020182,
+          "quantile_mace": 0.05310849967100151,
+          "reliability_slope": 0.816502699623906,
+          "brier": 0.17538783074342146,
+          "n": 4765
+        },
+        "empirical": {
+          "auc": 0.7656406734931567,
+          "mace": 0.045415959637232425,
+          "ece": 0.031713733123929305,
+          "quantile_mace": 0.02396007362982934,
+          "reliability_slope": 0.9485214700041039,
+          "brier": 0.18463472954700497,
+          "n": 4765
+        }
+      },
+      "generalization_gap_auc": -0.004067955217148311,
+      "weighting_effect_auc": 0.011135122762372385,
+      "blend_ticker_loo": {
+        "available": true,
+        "best_w_classifier_weight": 0.5,
+        "n": 4765,
+        "auc": 0.8064975079496518,
+        "mace": 0.040887511148777575,
+        "ece": 0.03620636619133251,
+        "quantile_mace": 0.03620946533261499,
+        "reliability_slope": 1.025917006077793,
+        "brier": 0.166901936330286,
+        "classifier_alone": {
+          "auc": 0.7997297380186723,
+          "mace": 0.07752360264504556,
+          "brier": 0.17687323259326265
+        },
+        "empirical_alone": {
+          "auc": 0.7656406734931567,
+          "mace": 0.045415959637232425,
+          "brier": 0.18463472954700497
+        }
+      }
+    },
+    {
+      "horizon_days": 60,
+      "status": "ok",
+      "n": 4765,
+      "n_tickers": 9,
+      "base_rate": 0.7206715634837356,
+      "transition_purged": {
+        "classifier_weighted": {
+          "auc": 0.7786273036637644,
+          "mace": 0.07820482193156378,
+          "ece": 0.09269431936563777,
+          "quantile_mace": 0.08450035141656728,
+          "reliability_slope": 0.803475810220199,
+          "brier": 0.15984315259965523,
+          "n": 4765
+        },
+        "empirical": {
+          "auc": 0.7378456124659621,
+          "mace": 0.10948167770665726,
+          "ece": 0.053895993510341376,
+          "quantile_mace": 0.07358466812677067,
+          "reliability_slope": 0.8909522398407079,
+          "brier": 0.16596390677195355,
+          "n": 4765
+        }
+      },
+      "ticker_loo": {
+        "classifier_weighted": {
+          "auc": 0.7731077434432796,
+          "mace": 0.08480766060744455,
+          "ece": 0.08957410458857609,
+          "quantile_mace": 0.0843464365307983,
+          "reliability_slope": 0.7762835984773925,
+          "brier": 0.16361890710697488,
+          "n": 4765
+        },
+        "classifier_unweighted": {
+          "auc": 0.7470517348283199,
+          "mace": 0.11469234169980988,
+          "ece": 0.0793708751149442,
+          "quantile_mace": 0.07434453339383297,
+          "reliability_slope": 0.7165855353775906,
+          "brier": 0.16822201354177296,
+          "n": 4765
+        },
+        "empirical": {
+          "auc": 0.7432616864019898,
+          "mace": 0.07981496062851633,
+          "ece": 0.047973355200320866,
+          "quantile_mace": 0.05946258648471083,
+          "reliability_slope": 0.888469661955301,
+          "brier": 0.1661145212495339,
+          "n": 4765
+        }
+      },
+      "generalization_gap_auc": 0.0055195602204848315,
+      "weighting_effect_auc": 0.026056008614959714,
+      "blend_ticker_loo": {
+        "available": true,
+        "best_w_classifier_weight": 0.5,
+        "n": 4765,
+        "auc": 0.7864867916057526,
+        "mace": 0.06841226749748594,
+        "ece": 0.04231947288291589,
+        "quantile_mace": 0.03611422223739711,
+        "reliability_slope": 1.0426928788588732,
+        "brier": 0.15138335105730158,
+        "classifier_alone": {
+          "auc": 0.7731077434432796,
+          "mace": 0.08480766060744455,
+          "brier": 0.16361890710697488
+        },
+        "empirical_alone": {
+          "auc": 0.7432616864019898,
+          "mace": 0.07981496062851633,
+          "brier": 0.1661145212495339
+        }
+      }
+    }
+  ],
+  "disclaimers": [
+    "Leave-one-ticker-out holds out a whole name; the gap is the unseen-name deployment cost.",
+    "Row weights \u2248 1/sqrt(episode rows) affect the FIT only; metrics are unweighted (each at-risk day counts once).",
+    "Blend weight w chosen out-of-fold by Brier; empirical baseline is the matched ticker-LOO estimate when available.",
+    "Capability-before-consumer; promotion gated downstream. Educational research only."
+  ],
+  "dataset_rows": 4765,
+  "matched_ticker_loo_empirical": true
+}

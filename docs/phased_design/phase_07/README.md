@@ -334,3 +334,76 @@ thin sample).
 The largest remaining *modeling* lever is a **wider / multi-sector universe** (a data unlock):
 it would sharpen breadth, de-correlate the market proxy, and is the most plausible route to
 further 60d gains. Educational research only; not a trading signal.
+
+## 9. Consumer wiring — the gated blend overlay (delivered)
+
+The capability is now **surfaced** (the capability→consumer step). `src/yearline_universe/blend_surface.py`
+turns the PR-E blend into a live, gated envelope overlay:
+
+- **`build_blend_model(tickers_data)`** — universe-level, **compute-once** (threaded per-ticker
+  exactly like `calibration_model`): per horizon, fit the row-weighted logistic on the pooled
+  *completed* rows, pick the convex blend weight `w` by transition-purged OOF Brier, and record
+  the blend's OOF **gate** (AUC ≥ 0.60, MACE ≤ 0.10, n ≥ 50 — the same gate basis as the calibrator).
+- **`apply_blend_live` / `build_blend_context`** — score the live state (static panel state +
+  leakage-safe path features at as-of + cross-sectional regime at as-of), blend with the live
+  empirical probability, attach the per-horizon gate.
+
+**Opt-in and additive by construction.** Surfacing is `surface_blend=False` by default and
+**pooled-only** (the cross-sectional features need the universe). The universe runner builds the
+blend model once and threads it; `run_hazard_layer` scores the live state; the envelope gains an
+**additive** `retry_hazard_context.direct_classifier_blend` block. The empirical estimate stays
+the **canonical** `p_retry_within_{h}d` — the blend is a clearly-labelled, gated *discriminative
+overlay*, never an overwrite. A verification across the 9-ticker universe confirms the wiring is
+**purely additive**: with `surface_blend=False` every envelope is byte-identical to before; with
+it on, stripping the new key reproduces the off-envelope for every ticker and field.
+
+### Worked example — MSFT, 2026-06-05 (a low-readiness repair)
+
+The path features (PR-A) read this repair as low-readiness — sitting at the repair low
+(`close_position_in_repair_range` 0.04), the yearline gap *widening* (`distance_to_ma250_change_10d`
+−0.31), volatility near a 1-year high (`realized_vol_20d_pctile_252d` 0.92). The classifier
+therefore ranks a *near-term* retouch **lower** than the static buckets do, and the blend tempers
+the short horizons while converging at 60d:
+
+| H | empirical (canonical) | classifier | **blend** (w) | gate |
+|---|---|---|---|---|
+| 10 | 0.262 | 0.085 | **0.218** (w=0.25) | ✅ |
+| 20 | 0.418 | 0.195 | **0.306** (w=0.50) | ✅ |
+| 40 | 0.603 | 0.492 | **0.548** (w=0.50) | ✅ |
+| 60 | 0.687 | 0.704 | **0.696** (w=0.50) | ✅ |
+
+All four horizons pass the gate; the overlay says, in effect, *"similar states usually retouch this
+often, but this particular repair is still falling — discount the near term."* That is the whole
+point of discrimination over a static count. See the worked tutorial
+`docs/tutorials/07_msft_low_readiness_repair_blend_walkthrough.md`.
+
+### Files changed (consumer wiring)
+
+- `src/yearline_universe/blend_surface.py` (new) — `build_blend_model`, `apply_blend_live`,
+  `build_blend_context`, `BLEND_SURFACE_VERSION`.
+- `src/yearline_universe/hazard.py` — `run_hazard_layer(..., surface_blend=False, blend_model=None)`
+  builds the live blend context (pooled, repair-active only) and returns it.
+- `src/yearline_universe/context_export.py` — `build_statistical_context_envelope(..., blend_context=None)`
+  attaches the additive `direct_classifier_blend` block (repair-active + available only).
+- `src/yearline_universe/ticker_pipeline.py` — `surface_blend` / `blend_model` threaded through
+  `run_ticker_pipeline` and `run_universe_pipeline` (compute-once, like `calibration_model`).
+- `tests/test_blend_surface.py` (new, +5) — weight/gate selection, live-apply math, live feature
+  row, pooled-only guard, **envelope additive-and-gated** attach.
+
+This is **output-changing but opt-in**: the default envelope is unchanged; enabling `surface_blend`
+adds the labelled, gated overlay. Educational research only; not a trading signal.
+
+## 10. Artifacts
+
+Reproducible snapshots of every Phase 7 measurement live in [`artifacts/`](artifacts/) (real
+9-ticker universe, 4,765 rows / 162 transitions, `as_of = 2026-06-05`):
+
+| File | What it captures |
+|---|---|
+| `headtohead_classifier_vs_empirical.csv` / `phase7_headtohead__classifier_vs_empirical.json` | **PR-B/C** — classifier vs empirical AUC/MACE per horizon (+ GBM diagnostic, promote flag). |
+| `cross_sectional_ladder.csv` / `phase7_cross_sectional_ladder.json` | **PR-D** — path-only vs path+cross-sectional AUC/MACE per horizon + the xs lift. |
+| `generalization_ticker_loo_and_blend.csv` / `phase7_generalization__ticker_loo_and_blend.json` | **PR-E** — transition-purged vs leave-one-ticker-out AUC, generalization gap, weighting effect, and the per-horizon blend (w / AUC / MACE). |
+| `MSFT__direct_classifier_blend__live.json` / `MSFT__blend_per_horizon.csv` | **Consumer wiring** — the live `direct_classifier_blend` overlay block for MSFT 2026-06-05 (the §9 worked example). |
+
+Regenerate with the reproduce snippets in §6/§7 (head-to-head, ladder, generalization) and the
+`build_blend_context` path in §9 (live overlay).

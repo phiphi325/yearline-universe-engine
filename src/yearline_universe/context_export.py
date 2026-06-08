@@ -119,6 +119,7 @@ def build_statistical_context_envelope(
     calibration_summary: Mapping[str, Any] | None = None,
     source_info: Mapping[str, Any] | None = None,
     retry_timing_context: Mapping[str, Any] | None = None,
+    blend_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build the per-ticker SingleTickerStatisticalContextEnvelope.
 
@@ -190,6 +191,12 @@ def build_statistical_context_envelope(
             "fail_reasons": gate40.get("fail_reasons", []),
         }
         retry_hazard_context["surfaced_probability_is_calibrated"] = bool(gate40.get("passed"))
+    # V13.3 Phase 7 (consumer wiring): additive, gated discriminative overlay. The empirical
+    # P(retry<=H) above stays CANONICAL; this block is attached only when blend surfacing was
+    # enabled (surface_blend=True) AND the blend is available for a live repair state — so the
+    # default envelope is byte-identical (key absent).
+    if hazard_active and blend_context and blend_context.get("available"):
+        retry_hazard_context["direct_classifier_blend"] = dict(blend_context)
     trend_context = {
         "active": active_engine == "post_confirmation_trend_engine",
         "trend_state": latest.get("post_confirmation_trend_state"),

@@ -21,21 +21,23 @@
 ✅ V13.0  clean architecture skeleton, config parser, dataclasses
 ✅ V13.1  generic single-ticker pipeline + per-ticker repo-ready envelope
 ✅ V13.2  universe batch runner: per-ticker failure isolation + run manifest + bundle (stretch)
-✅ V13.3  Phases 1–5 DELIVERED: evidence + conditional timing + empirical-horizon hazard hardening + calibration/gating (V13.7) + pooled training & data freshness (9 tickers current). Pooling clears the trust gate at 10/20/40d (AUC 0.74–0.82)
+✅ V13.3  Phases 1–7 DELIVERED: evidence + conditional timing + empirical-horizon hazard hardening + calibration/gating (V13.7) + pooled training & data freshness (9 tickers) + honest out-of-fold gate (P6) + discriminative classifier↔empirical blend overlay (P7). Pooling clears the trust gate at 10/20/40d (AUC 0.74–0.82); the P7 blend lifts AUC to 0.79–0.84 under leave-one-ticker-out and clears the gate at all four horizons
 ◐  V13.4  dashboard — cross-sectional TABLE only (interactive plots pending)
 ✅ V13.5  universe context bundle export (nests per-ticker envelopes; pooled_context now FILLED — evidence + conditional timing + pooled hazard)
 ☐  V13.6  historical universe replay (single-ticker replay exists; universe sweep pending)
-◐  V13.7  calibration/gating DELIVERED (Phase 4, opt-in calibrate=True): horizon reliability + isotonic + purged LOTO + trust gate; pooled/sector calibration awaits Phase 5
+◐  V13.7  calibration/gating DELIVERED (Phase 4, opt-in calibrate=True): horizon reliability + isotonic + purged LOTO + trust gate
+✅ V13.9  discriminative overlay DELIVERED (Phase 7, opt-in surface_blend): path + cross-sectional features → direct horizon classifier ↔ empirical blend, gated + additive; empirical stays canonical
 ☐  V13.8  repo integration bundle (schema + dataclass proposal emitted; adapter pending)
 ```
 
-**Package:** `yearline_universe` — 18 modules (incl. `timing.py`, `calibration.py`),
-~4,800 LOC, notebook orchestrates only.
+**Package:** `yearline_universe` — 24 modules (incl. `timing.py`, `calibration.py`, and the
+Phase 7 stack `features.py` / `cross_sectional.py` / `labels.py` / `models.py` /
+`generalization.py` / `blend_surface.py`), notebook orchestrates only.
 
 **Verification (real data, `as_of = 2026-06-05`):** the universe runs through the
 identical `run_ticker_pipeline` code path and passes the structural sanity gate. On the
 refreshed 9-ticker cache the mega-cap batch reports **6/6 OK** (was 3/6); the Phase 5
-`mvp_software_like` universe runs **9/9**. `pytest` → **46/46 pass** (run per-file; the
+`mvp_software_like` universe runs **9/9**. `pytest` → **68/68 pass** (16 files, run per-file; the
 heavy real-data tests can spike memory in one process), including an AST guard asserting
 no hardcoded ticker literal exists anywhere in `src/`.
 

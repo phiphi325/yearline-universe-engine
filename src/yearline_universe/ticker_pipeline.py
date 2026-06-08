@@ -83,6 +83,8 @@ def run_ticker_pipeline(
     fit_ml_models: bool = False,
     calibrate: bool = False,
     calibration_model: Mapping[str, Any] | None = None,
+    surface_blend: bool = False,
+    blend_model: Mapping[str, Any] | None = None,
     prebuilt_foundation: Mapping[str, Any] | None = None,
 ) -> TickerPipelineResult:
     """Run the full per-ticker statistical-context pipeline. Ticker-agnostic.
@@ -116,7 +118,8 @@ def run_ticker_pipeline(
         # --- Hazard (ML timing/quality + discrete-time survival) ------------
         hz = run_hazard_layer(ticker, peer_group, price_df, recovery, live, study,
                               pooled_data=pooled_data, fit_ml_models=fit_ml_models,
-                              calibrate=calibrate, calibration_model=calibration_model)
+                              calibrate=calibrate, calibration_model=calibration_model,
+                              surface_blend=surface_blend, blend_model=blend_model)
         hazard_fit = hz["hazard_fit"]
         hazard_history = hz["hazard_history"]
         hazard_context = hz["hazard_context"]
@@ -190,7 +193,7 @@ def run_ticker_pipeline(
         envelope = build_statistical_context_envelope(
             ticker, sector, peer_group, semantic_card, latest_row,
             calibration_summary=calibration_summary, source_info=source_info,
-            retry_timing_context=retry_timing,
+            retry_timing_context=retry_timing, blend_context=hz.get("blend_context"),
         )
 
         manifest = {
@@ -257,6 +260,7 @@ def run_universe_pipeline(
     fit_ml_models: bool = False,
     calibrate: bool = False,
     pool_hazard: bool = False,
+    surface_blend: bool = False,
 ) -> UniversePipelineResult:
     """V13.2 batch runner: run every configured ticker, isolate failures, emit a manifest + bundle.
 
@@ -304,8 +308,16 @@ def run_universe_pipeline(
         if not pooled_panel.empty:
             calibration_model = build_calibration_model(pooled_panel)
 
+    # V13.3 Phase 7 (consumer wiring): build the compute-once blend model ONCE (universe-level,
+    # live-ticker-independent), then reuse per ticker — opt-in via surface_blend, pooled-only.
+    blend_model = None
+    if pool_hazard and surface_blend and pooled_data:
+        from .blend_surface import build_blend_model
+        blend_model = build_blend_model(pooled_data, universe_config.study_for(tcs[0]))
+
     base = dict(cache_dir=cache_dir, provider=provider, incremental=incremental,
-                state_dir=state_dir, fit_ml_models=fit_ml_models, calibrate=calibrate)
+                state_dir=state_dir, fit_ml_models=fit_ml_models, calibrate=calibrate,
+                surface_blend=surface_blend)
 
     def _kw(tc: TickerConfig) -> dict:
         k = dict(base)
@@ -314,6 +326,8 @@ def run_universe_pipeline(
             k["prebuilt_foundation"] = foundations.get(tc.ticker)
             if calibration_model is not None:
                 k["calibration_model"] = calibration_model
+            if blend_model is not None:
+                k["blend_model"] = blend_model
         return k
 
     if n_jobs == 1 or len(tcs) <= 1:

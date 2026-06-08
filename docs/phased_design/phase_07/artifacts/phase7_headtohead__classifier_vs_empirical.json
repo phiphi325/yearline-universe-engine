@@ -1,0 +1,165 @@
+{
+  "available": true,
+  "model_version": "v13_phase7_direct_horizon_classifier",
+  "primary_model": "l2_logistic",
+  "diagnostic_model": "gbm_shallow_subsampled",
+  "n_rows": 4765,
+  "n_transitions": 162,
+  "features_used": [
+    "trading_days_since_touch",
+    "drawdown_so_far_pct",
+    "below_ma250_depth_so_far_pct",
+    "from_touch_day_overshoot_pct",
+    "attempt_no",
+    "return_5d",
+    "return_10d",
+    "return_20d",
+    "distance_to_ma20_pct",
+    "distance_to_ma50_pct",
+    "price_above_ma20",
+    "price_above_ma50",
+    "ma20_change_10d_pct",
+    "ma50_change_20d_pct",
+    "repair_gap_pct",
+    "distance_to_ma250_change_5d",
+    "distance_to_ma250_change_10d",
+    "distance_to_ma250_change_20d",
+    "distance_to_ma250_slope_10d",
+    "realized_vol_20d",
+    "realized_vol_20d_pctile_252d",
+    "range_compression_10d"
+  ],
+  "features_missing": [],
+  "cv": "group_kfold_purged_by_transition(k<=5)",
+  "mace_tolerance": 0.02,
+  "gate_thresholds": {
+    "min_auc": 0.6,
+    "max_mace": 0.1,
+    "min_n": 50
+  },
+  "horizons": [
+    {
+      "horizon_days": 10,
+      "status": "ok",
+      "n_shared_rows": 4765,
+      "base_rate": 0.29716684155299056,
+      "empirical_baseline": {
+        "auc": 0.8162760027869016,
+        "mace": 0.03639081626845684,
+        "n": 4765
+      },
+      "logistic": {
+        "auc": 0.8018718801294931,
+        "mace": 0.046492915901747076,
+        "n_shared": 4765,
+        "n_all_oof": 4765,
+        "auc_all_oof": 0.8018718801294931,
+        "mace_all_oof": 0.046492915901747076
+      },
+      "gbm_diagnostic": {
+        "auc": 0.8416228682817875,
+        "mace": 0.04828503741554886,
+        "note": "diagnostic_only_never_promoted"
+      },
+      "auc_delta_logistic_minus_empirical": -0.014404122657408536,
+      "mace_delta_logistic_minus_empirical": 0.010102099633290236,
+      "logistic_beats_empirical_auc": false,
+      "logistic_mace_not_worse": true,
+      "promote_recommended": false
+    },
+    {
+      "horizon_days": 20,
+      "status": "ok",
+      "n_shared_rows": 4765,
+      "base_rate": 0.4472193074501574,
+      "empirical_baseline": {
+        "auc": 0.7791442947101525,
+        "mace": 0.04812396810629951,
+        "n": 4765
+      },
+      "logistic": {
+        "auc": 0.7845769878572342,
+        "mace": 0.058558542307709835,
+        "n_shared": 4765,
+        "n_all_oof": 4765,
+        "auc_all_oof": 0.7845769878572342,
+        "mace_all_oof": 0.058558542307709835
+      },
+      "gbm_diagnostic": {
+        "auc": 0.788198991137445,
+        "mace": 0.05657397568100485,
+        "note": "diagnostic_only_never_promoted"
+      },
+      "auc_delta_logistic_minus_empirical": 0.005432693147081724,
+      "mace_delta_logistic_minus_empirical": 0.010434574201410328,
+      "logistic_beats_empirical_auc": true,
+      "logistic_mace_not_worse": true,
+      "promote_recommended": true
+    },
+    {
+      "horizon_days": 40,
+      "status": "ok",
+      "n_shared_rows": 4765,
+      "base_rate": 0.6203567681007345,
+      "empirical_baseline": {
+        "auc": 0.7624476287933358,
+        "mace": 0.07737397130730406,
+        "n": 4765
+      },
+      "logistic": {
+        "auc": 0.7751297639003899,
+        "mace": 0.06692259350601237,
+        "n_shared": 4765,
+        "n_all_oof": 4765,
+        "auc_all_oof": 0.7751297639003899,
+        "mace_all_oof": 0.06692259350601237
+      },
+      "gbm_diagnostic": {
+        "auc": 0.7735331012955071,
+        "mace": 0.05698219863877805,
+        "note": "diagnostic_only_never_promoted"
+      },
+      "auc_delta_logistic_minus_empirical": 0.012682135107054071,
+      "mace_delta_logistic_minus_empirical": -0.010451377801291684,
+      "logistic_beats_empirical_auc": true,
+      "logistic_mace_not_worse": true,
+      "promote_recommended": true
+    },
+    {
+      "horizon_days": 60,
+      "status": "ok",
+      "n_shared_rows": 4765,
+      "base_rate": 0.7206715634837356,
+      "empirical_baseline": {
+        "auc": 0.7378456124659621,
+        "mace": 0.10948167770665726,
+        "n": 4765
+      },
+      "logistic": {
+        "auc": 0.7619526658548208,
+        "mace": 0.07201723205521239,
+        "n_shared": 4765,
+        "n_all_oof": 4765,
+        "auc_all_oof": 0.7619526658548208,
+        "mace_all_oof": 0.07201723205521239
+      },
+      "gbm_diagnostic": {
+        "auc": 0.8142259291558712,
+        "mace": 0.05695154065520153,
+        "note": "diagnostic_only_never_promoted"
+      },
+      "auc_delta_logistic_minus_empirical": 0.024107053388858657,
+      "mace_delta_logistic_minus_empirical": -0.03746444565144487,
+      "logistic_beats_empirical_auc": true,
+      "logistic_mace_not_worse": true,
+      "promote_recommended": true
+    }
+  ],
+  "disclaimers": [
+    "Episode-aware CV: GroupKFold purged by transition_key (held-out vs held-out).",
+    "Logistic is primary; GBM is diagnostic-only and is never promoted (overfits ~10^2 episodes).",
+    "promote_recommended \u21d2 beats empirical AUC AND MACE not worse by > tolerance AND n>=min_n.",
+    "Capability-before-consumer: not wired into the envelope; promotion is gated downstream.",
+    "Educational research only; not a trading signal."
+  ]
+}

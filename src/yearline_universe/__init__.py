@@ -63,6 +63,12 @@ from .generalization import (
     calibration_metrics,
     GENERALIZATION_VERSION,
 )
+from .blend_surface import (
+    build_blend_model,
+    apply_blend_live,
+    build_blend_context,
+    BLEND_SURFACE_VERSION,
+)
 from .validation import (
     validate_ticker_sanity,
     validate_reference_parity,
@@ -110,6 +116,10 @@ __all__ = [
     "episode_row_weights",
     "calibration_metrics",
     "GENERALIZATION_VERSION",
+    "build_blend_model",
+    "apply_blend_live",
+    "build_blend_context",
+    "BLEND_SURFACE_VERSION",
     "validate_ticker_sanity",
     "validate_reference_parity",
     "ml_feature_leakage_audit",

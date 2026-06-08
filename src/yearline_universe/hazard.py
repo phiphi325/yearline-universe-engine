@@ -759,6 +759,8 @@ def run_hazard_layer(
     fit_ml_models: bool = False,
     calibrate: bool = False,
     calibration_model: Mapping[str, Any] | None = None,
+    surface_blend: bool = False,
+    blend_model: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run the survival hazard (and, optionally, the ML timing/quality models).
 
@@ -855,6 +857,20 @@ def run_hazard_layer(
         calibration_context = build_calibration_context(panel, live_row=live_row_c, model=calibration_model)
         calibration_context["training_scope"] = "pooled_universe" if pooled else "single_ticker_self_fit"
 
+    # V13.3 Phase 7 (consumer wiring): OPT-IN gated classifier↔empirical blend overlay.
+    # Output-changing, so default off; pooled-only (cross-sectional features need the
+    # universe) and only when there is a live hazard state. ``blend_model`` is the
+    # compute-once model reused per ticker (built once by the universe runner).
+    blend_context = {"available": False, "warning": "blend_not_requested_pass_surface_blend_true"}
+    if surface_blend and pooled and hazard_context.get("available") and not horizon_reference.empty:
+        from .blend_surface import build_blend_context
+        live_rows_b = panel[panel["is_live_transition"] == True]
+        if not live_rows_b.empty:
+            live_row_b = live_rows_b.sort_values("as_of_date").tail(1).iloc[0].to_dict()
+            emp_b = empirical_horizon_probabilities_for_row(live_row_b, horizon_reference, HAZARD_HORIZONS)
+            emp_p = {h: emp_b[h].get("cumulative_retry_probability") for h in (10, 20, 40, 60)}
+            blend_context = build_blend_context(tickers_data, ticker, live_row_b, emp_p, config, model=blend_model)
+
     return {
         "hazard_history": curve,
         "hazard_horizon_summary": horizon_summary,
@@ -862,6 +878,7 @@ def run_hazard_layer(
         "hazard_fit": fit_obj,          # (model, feature_names, train) — reused by replay
         "hazard_panel": panel,
         "calibration_context": calibration_context,
+        "blend_context": blend_context,
         "timing_prediction": timing_pred,
         "timing_status": timing_status,
         "quality_prediction": quality_pred,

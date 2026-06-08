@@ -31,13 +31,18 @@ and Phase 4 ports the V12.6 harness that scores it.
 | **4** | **Calibration** (V13.7) — port the V12.6 horizon-reliability harness (scores the empirical estimator), add isotonic + purged transition-aware splits, fill `calibration_context` + a per-horizon **trust gate** (opt-in `calibrate=True`) | ✅ DELIVERED | [phase_04/](phase_04/) |
 | **5** | Supporting — **pooled** hazard/reference/calibration training + universe **data freshness** (9 tickers current). **Pooling clears the Phase 4 trust gate at 10/20/40d.** | ✅ DELIVERED | [phase_05/](phase_05/) |
 | **6** | **Honest gate** — gate on an out-of-fold (purged-by-transition) isotonic-calibrated MACE, not the in-sample-optimistic value. Tightens 40d; shows 60d is sample/regime-limited (honest abstention). | ✅ DELIVERED | [phase_06/](phase_06/) |
+| **7** | **Discrimination, not recalibration** — leakage-safe path + cross-sectional features → a direct horizon **classifier**, validated under **leave-one-ticker-out**; the classifier↔empirical **blend** beats both on AUC + calibration at every horizon (incl. a gate-passing 60d). Shipped as an **opt-in, additive, gated** envelope overlay (`surface_blend`); empirical stays canonical. | ✅ DELIVERED | [phase_07/](phase_07/) |
 
 Recommended order: 1 → 2 (ship validated value) → 3 → 4 (make any probability
-trustworthy), with 5 supporting throughout. Execution pauses for a go-check between
-phases. **Status: Phases 1–5 ALL DELIVERED.** The forward "days-to-touch" probability
-is now a credible, calibrated, gated quantity at ≤40d on current pooled data — Phase 5
-pooling lifted the empirical estimator's AUC to 0.74–0.82 and the trust gate passes at
-10/20/40d (see `phase_05/`).
+trustworthy), with 5 supporting throughout, then 6 (honest gate) and 7 (discrimination).
+Execution pauses for a go-check between phases. **Status: Phases 1–7 ALL DELIVERED.** The
+forward "days-to-touch" probability is now a credible, calibrated, gated quantity at ≤40d on
+current pooled data (Phase 5 pooling lifted the empirical estimator's AUC to 0.74–0.82; the
+trust gate passes at 10/20/40d). **Phase 7** adds a learned **discriminative overlay**: a
+direct horizon classifier blended with the empirical estimator that, under the unseen-name
+(leave-one-ticker-out) test, lifts blend AUC to 0.79–0.84 and clears the gate at all four
+horizons — surfaced opt-in beside the canonical empirical number, never replacing it. The
+largest remaining lever is a **wider / multi-sector universe** (a data unlock), not more code.
 
 ## Conventions for each phase folder
 
