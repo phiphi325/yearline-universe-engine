@@ -758,6 +758,7 @@ def run_hazard_layer(
     pooled_data: Mapping[str, Mapping[str, Any]] | None = None,
     fit_ml_models: bool = False,
     calibrate: bool = False,
+    calibration_model: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run the survival hazard (and, optionally, the ML timing/quality models).
 
@@ -848,7 +849,10 @@ def run_hazard_layer(
         live_rows_c = panel[panel["is_live_transition"] == True]
         live_row_c = (live_rows_c.sort_values("as_of_date").tail(1).iloc[0].to_dict()
                       if not live_rows_c.empty else None)
-        calibration_context = build_calibration_context(panel, live_row=live_row_c)
+        # ``calibration_model`` (V13.3 Phase 6 follow-up): when the universe runner has
+        # already built the pooled calibration model once, reuse it — the per-ticker
+        # cost collapses to the cheap live apply instead of rebuilding the LOTO dataset.
+        calibration_context = build_calibration_context(panel, live_row=live_row_c, model=calibration_model)
         calibration_context["training_scope"] = "pooled_universe" if pooled else "single_ticker_self_fit"
 
     return {

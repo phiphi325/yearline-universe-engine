@@ -7,8 +7,8 @@ from conftest import CACHE_DIR, CONFIG_DIR
 
 from yearline_universe.calibration import (
     build_horizon_calibration_dataset, horizon_calibration_metrics,
-    fit_isotonic_per_horizon, build_calibration_context, apply_isotonic_knots,
-    CALIBRATION_HORIZONS,
+    fit_isotonic_per_horizon, build_calibration_context, build_calibration_model,
+    apply_isotonic_knots, CALIBRATION_HORIZONS,
 )
 from yearline_universe import load_universe_config, run_ticker_pipeline, export_single_ticker_context
 
@@ -81,6 +81,22 @@ def test_build_calibration_context_and_gate():
     for h in ("10", "20", "40", "60"):
         cp = live_p[h]["calibrated_probability"]
         assert cp is None or (0.0 <= cp <= 1.0)
+
+
+def test_compute_once_model_matches_inline_build():
+    # V13.3 Phase 6 follow-up: a precomputed model reused per ticker must yield results
+    # identical to building it inline (compute-once is purely a performance refactor).
+    panel = _synthetic_panel()
+    live = {"ticker": "ZZZ", "group": "peerX", "transition": "2_to_3",
+            "from_canonical_quality": "strict", "trading_days_since_touch": 8,
+            "distance_to_ma250_pct": -8.0, "drawdown_so_far_pct": 9.0}
+    inline = build_calibration_context(panel, live_row=live)                  # model=None → inline build
+    model = build_calibration_model(panel)                                    # built once
+    reused = build_calibration_context(panel, live_row=live, model=model)     # reuse → cheap apply
+    assert reused["summary"] == inline["summary"]
+    assert reused["trust_gate"] == inline["trust_gate"]
+    assert reused["live_calibrated_horizon_probabilities"] == inline["live_calibrated_horizon_probabilities"]
+    assert "live_calibrated_horizon_probabilities" not in model              # model has no per-ticker block
 
 
 def test_calibrate_is_opt_in_and_default_off():

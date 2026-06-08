@@ -179,9 +179,14 @@ JSON schema: `exports/reports/statistical_context_schema.json`.
 ## Tests
 
 ```bash
-pytest                       # 46 tests
-# (heavy real-data tests can spike memory in one process; run per-file if needed)
+pytest                       # 46 tests (fine on a machine with ample RAM)
+bash scripts/run_tests.sh    # process-isolated (one file per process) — for memory-constrained envs/CI
 ```
+
+Several tests run the full real-data universe pipeline and hold large pandas frames, so
+a single `pytest` process can OOM on a constrained machine. A `gc` sweep runs after each
+test to bound peak memory; for guaranteed isolation use `scripts/run_tests.sh` (each
+test file in its own process). Both report the same **46 passing**.
 
 Includes parity/structure gates, parallel==serial & incremental==full equivalence,
 an AST guard against hardcoded tickers, and per-phase tests (evidence, timing, empirical

@@ -304,6 +304,17 @@ def export_universe_context_bundle(result) -> dict:
             if block.get("active"):
                 pooled_timing[t] = block
 
+    # V13.3 Phase 6 follow-up: surface the universe-level calibration model ONCE in the
+    # bundle (it is identical across tickers when pooled). Lift it from the first
+    # calibrated ticker's envelope, stripped of that ticker's per-ticker live block.
+    pooled_calibration: dict[str, Any] = {}
+    for t, r in ticker_results.items():
+        cc = (getattr(r, "latest_context", {}) or {}).get("calibration_context", {})
+        if isinstance(cc, dict) and cc.get("available"):
+            pooled_calibration = {k: v for k, v in cc.items()
+                                  if k != "live_calibrated_horizon_probabilities"}
+            break
+
     bundle = {
         "schema_version": UNIVERSE_BUNDLE_SCHEMA_VERSION,
         "context_version": CONTEXT_VERSION,
@@ -318,6 +329,7 @@ def export_universe_context_bundle(result) -> dict:
             "sector": evidence.get("sector", {}),
             "universe": evidence.get("universe", {}),
             "retry_timing": pooled_timing,
+            "calibration": pooled_calibration,
             "disclaimers": evidence.get("disclaimers", []),
         },
         "warnings": warnings,
