@@ -45,6 +45,8 @@ __all__ = [
     "build_horizon_calibration_dataset",
     "horizon_calibration_metrics",
     "fit_isotonic_per_horizon",
+    "build_calibration_model",
+    "apply_calibration_live",
     "build_calibration_context",
     "apply_isotonic_knots",
 ]
@@ -305,12 +307,14 @@ def _gate_for_horizon(metric: Mapping[str, Any], iso: Mapping[str, Any] | None) 
             "fail_reasons": reasons}
 
 
-def build_calibration_context(panel: pd.DataFrame, horizons=None,
-                              live_row: Mapping[str, Any] | None = None) -> dict[str, Any]:
-    """Full calibration_context: per-horizon metrics + isotonic + trust gate.
+def build_calibration_model(panel: pd.DataFrame, horizons=None) -> dict[str, Any]:
+    """The EXPENSIVE, live-ticker-INDEPENDENT calibration model (V13.3 Phase 6 follow-up).
 
-    If ``live_row`` (the latest at-risk state) is given, also returns its calibrated
-    surfaced probabilities so the envelope can present a calibrated, gated number.
+    Builds the purged LOTO dataset + per-horizon metrics + out-of-fold isotonic + trust
+    gate. This depends only on the (pooled) panel's *completed* rows, so for a universe
+    it is identical for every ticker — compute it ONCE and reuse via
+    ``build_calibration_context(..., model=…)`` / ``apply_calibration_live``.
+    Returns a small, JSON-serializable dict (no DataFrames) safe to pass to workers.
     """
     horizons = horizons or CALIBRATION_HORIZONS
     if not _SKLEARN:
@@ -324,8 +328,7 @@ def build_calibration_context(panel: pd.DataFrame, horizons=None,
     isotonic = fit_isotonic_per_horizon(dataset, horizons)
     metrics_by_h = {int(m["horizon_days"]): m for m in _records(metrics)}
 
-    gate = {}
-    summary = []
+    gate, summary = {}, []
     for h in horizons:
         h = int(h)
         m = metrics_by_h.get(h)
@@ -345,7 +348,7 @@ def build_calibration_context(panel: pd.DataFrame, horizons=None,
             "trust_gate_passed": g["passed"],
         })
 
-    ctx: dict[str, Any] = {
+    return {
         "available": True,
         "schema_version": CALIBRATION_SCHEMA_VERSION,
         "probability_policy": HORIZON_PROB_POLICY,
@@ -369,20 +372,47 @@ def build_calibration_context(panel: pd.DataFrame, horizons=None,
         ],
     }
 
-    if live_row is not None:
+
+def apply_calibration_live(model: Mapping[str, Any], reference: pd.DataFrame,
+                           live_row: Mapping[str, Any], horizons=None) -> dict[str, Any]:
+    """CHEAP per-ticker step: the live state's raw + isotonic-calibrated P + gate.
+
+    Reuses a precomputed ``model`` (its isotonic knots + trust gate); only computes the
+    live state's empirical probability against ``reference`` and applies the knots.
+    """
+    horizons = horizons or CALIBRATION_HORIZONS
+    if not model or not model.get("available") or reference is None or reference.empty:
+        return {}
+    iso_map = model.get("isotonic_transforms", {})
+    gate = model.get("trust_gate", {})
+    live_emp = empirical_horizon_probabilities_for_row(dict(live_row), reference, horizons)
+    out = {}
+    for h in horizons:
+        h = int(h)
+        raw = live_emp.get(h, {}).get("cumulative_retry_probability")
+        iso = iso_map.get(str(h))
+        cal = apply_isotonic_knots(iso.get("x_thresholds"), iso.get("y_thresholds"), raw) if iso else raw
+        out[str(h)] = {
+            "raw_probability": (None if raw is None or pd.isna(raw) else float(raw)),
+            "calibrated_probability": (None if cal is None or pd.isna(cal) else float(cal)),
+            "trust_gate_passed": bool(gate.get(str(h), {}).get("passed")),
+        }
+    return out
+
+
+def build_calibration_context(panel: pd.DataFrame, horizons=None,
+                              live_row: Mapping[str, Any] | None = None,
+                              model: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """calibration_context = the universe model (+ this ticker's live calibrated P).
+
+    Pass a precomputed ``model`` (from ``build_calibration_model`` on the pooled panel)
+    to skip the expensive rebuild — the per-ticker cost is then just the cheap live
+    apply. With ``model=None`` it builds the model from ``panel`` (single-ticker path).
+    """
+    horizons = horizons or CALIBRATION_HORIZONS
+    m = dict(model) if model is not None else build_calibration_model(panel, horizons)
+    ctx = dict(m)
+    if live_row is not None and m.get("available"):
         ref = build_empirical_horizon_reference(panel)
-        live_emp = empirical_horizon_probabilities_for_row(dict(live_row), ref, horizons)
-        live = {}
-        for h in horizons:
-            h = int(h)
-            raw = live_emp.get(h, {}).get("cumulative_retry_probability")
-            iso = isotonic.get(h)
-            cal = apply_isotonic_knots(iso.get("x_thresholds"), iso.get("y_thresholds"), raw) if iso else raw
-            g = gate.get(str(h), {"passed": False})
-            live[str(h)] = {
-                "raw_probability": (None if raw is None or pd.isna(raw) else float(raw)),
-                "calibrated_probability": (None if cal is None or pd.isna(cal) else float(cal)),
-                "trust_gate_passed": bool(g.get("passed")),
-            }
-        ctx["live_calibrated_horizon_probabilities"] = live
+        ctx["live_calibrated_horizon_probabilities"] = apply_calibration_live(m, ref, live_row, horizons)
     return ctx

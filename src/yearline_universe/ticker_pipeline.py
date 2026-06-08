@@ -82,6 +82,7 @@ def run_ticker_pipeline(
     state_dir: str | None = None,
     fit_ml_models: bool = False,
     calibrate: bool = False,
+    calibration_model: Mapping[str, Any] | None = None,
     prebuilt_foundation: Mapping[str, Any] | None = None,
 ) -> TickerPipelineResult:
     """Run the full per-ticker statistical-context pipeline. Ticker-agnostic.
@@ -115,7 +116,7 @@ def run_ticker_pipeline(
         # --- Hazard (ML timing/quality + discrete-time survival) ------------
         hz = run_hazard_layer(ticker, peer_group, price_df, recovery, live, study,
                               pooled_data=pooled_data, fit_ml_models=fit_ml_models,
-                              calibrate=calibrate)
+                              calibrate=calibrate, calibration_model=calibration_model)
         hazard_fit = hz["hazard_fit"]
         hazard_history = hz["hazard_history"]
         hazard_context = hz["hazard_context"]
@@ -290,6 +291,19 @@ def run_universe_pipeline(
             for tc in tcs if foundations.get(tc.ticker) is not None
         }
 
+    # V13.3 Phase 6 follow-up: build the (live-ticker-independent) pooled calibration
+    # model ONCE here, then reuse it across tickers — instead of recomputing the
+    # identical LOTO calibration N times. The per-ticker cost becomes the cheap live apply.
+    calibration_model = None
+    if pool_hazard and calibrate and pooled_data:
+        from .hazard import build_hazard_daily_panel
+        from .calibration import build_calibration_model
+        study0 = universe_config.study_for(tcs[0])
+        any_ticker = next(iter(pooled_data))
+        pooled_panel = build_hazard_daily_panel(pooled_data, any_ticker, study0)
+        if not pooled_panel.empty:
+            calibration_model = build_calibration_model(pooled_panel)
+
     base = dict(cache_dir=cache_dir, provider=provider, incremental=incremental,
                 state_dir=state_dir, fit_ml_models=fit_ml_models, calibrate=calibrate)
 
@@ -298,6 +312,8 @@ def run_universe_pipeline(
         if pool_hazard:
             k["pooled_data"] = pooled_data
             k["prebuilt_foundation"] = foundations.get(tc.ticker)
+            if calibration_model is not None:
+                k["calibration_model"] = calibration_model
         return k
 
     if n_jobs == 1 or len(tcs) <= 1:

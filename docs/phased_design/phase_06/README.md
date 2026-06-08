@@ -60,15 +60,12 @@ to 60d is *more data + better features* (Phase 7), not another transform.
   gate exposes its MACE basis. **46/46 tests pass.**
 - `docs/phased_design/phase_06/` — this README + `artifacts/calibration_honest_oof_isotonic.csv`.
 
-## 4. Scope of this PR (and what's deliberately deferred)
+## 4. Scope — two PRs
 
-This PR is the **honest-gate** slice of the Phase 6 plan. The other two planned
-workstreams are intentionally **separate fast-follow PRs** to keep this diff a clean,
-reviewable calibration change:
-
-- **WS1 — compute-once pooled calibration** surfaced in the universe bundle (currently
-  the pooled calibration is recomputed per ticker; it's identical across tickers).
-- **WS3 — test-suite OOM fix** (run the heavy real-data suite in one process without OOM).
+- **PR #1 (merged):** the **honest-gate** slice (this document's §1–§3).
+- **PR #2 (follow-up):** **WS1 compute-once pooled calibration** + **WS3 test-suite OOM
+  mitigation** (see §7). Split so the calibration-correctness change reviews cleanly on
+  its own.
 
 ## 5. Reproduce
 
@@ -79,7 +76,29 @@ python scripts/run_universe_mvp.py config/universe_mvp_software_like.yaml \
 pytest -q tests/test_calibration.py
 ```
 
-## 6. Decision gate → Phase 7
+## 6. Follow-up PR — compute-once calibration + test OOM (delivered)
+
+**WS1 — compute-once pooled calibration.** The pooled calibration model is
+live-ticker-*independent* (it depends only on the pooled panel's completed rows), so
+recomputing it per ticker was pure waste. `calibration.py` now splits into
+`build_calibration_model(panel)` (the expensive LOTO dataset + metrics + OOF isotonic +
+gate, a small JSON-serializable dict) and `apply_calibration_live(model, reference,
+live_row)` (the cheap per-ticker raw+calibrated P + gate). `run_universe_pipeline(
+pool_hazard=True, calibrate=True)` builds the model **once** and threads it to every
+ticker (`run_ticker_pipeline(calibration_model=…)` → `run_hazard_layer`), and the
+universe **bundle surfaces it once** at `pooled_context.calibration` (per-ticker live
+block stripped). Verified: the full 9-ticker pooled+calibrate run is **one** model build
+(n=4,765, 162 transitions) instead of ~9× LOTO rebuilds; bundle `pooled_context.calibration`
+populated; per-ticker envelopes still carry their gate + calibrated P (gate {10/20/40 pass,
+60 fail}, unchanged). A test asserts model-reuse is byte-identical to the inline build.
+
+**WS3 — test-suite OOM mitigation.** The real-data tests hold large pandas frames, so a
+single `pytest` process can OOM on a constrained machine. Added a `gc.collect()` autouse
+fixture (bounds peak memory) and `scripts/run_tests.sh` (one file per process — the
+reliable, dependency-free isolation path), documented in the README "Tests" section.
+Both report the same **46 passing**.
+
+## 7. Decision gate → Phase 7
 
 With the gate now honest and 60d shown to be sample/feature-limited (not a calibration
 problem), the next effort is **discrimination, not recalibration**: per the
