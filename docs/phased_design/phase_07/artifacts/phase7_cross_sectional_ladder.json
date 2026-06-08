@@ -1,0 +1,120 @@
+{
+  "available": true,
+  "model_version": "v13_phase7_direct_horizon_classifier",
+  "n_rows": 4765,
+  "n_transitions": 162,
+  "set_names": [
+    "path",
+    "path_plus_xs"
+  ],
+  "horizons": [
+    {
+      "horizon_days": 10,
+      "status": "ok",
+      "n_shared_rows": 4765,
+      "base_rate": 0.29716684155299056,
+      "empirical_baseline": {
+        "auc": 0.8162760027869016,
+        "mace": 0.03639081626845684,
+        "n": 4765
+      },
+      "sets": {
+        "path": {
+          "auc": 0.8018718801294931,
+          "mace": 0.046492915901747076
+        },
+        "path_plus_xs": {
+          "auc": 0.8041305440699897,
+          "mace": 0.06408207299325631
+        }
+      },
+      "best_set": "path_plus_xs",
+      "xs_lift_auc": 0.0022586639404966746,
+      "xs_lift_mace": 0.01758915709150924,
+      "xs_helps": true
+    },
+    {
+      "horizon_days": 20,
+      "status": "ok",
+      "n_shared_rows": 4765,
+      "base_rate": 0.4472193074501574,
+      "empirical_baseline": {
+        "auc": 0.7791442947101525,
+        "mace": 0.04812396810629951,
+        "n": 4765
+      },
+      "sets": {
+        "path": {
+          "auc": 0.7845769878572342,
+          "mace": 0.058558542307709835
+        },
+        "path_plus_xs": {
+          "auc": 0.7834530008084726,
+          "mace": 0.05608650278247017
+        }
+      },
+      "best_set": "path",
+      "xs_lift_auc": -0.0011239870487615988,
+      "xs_lift_mace": -0.0024720395252396665,
+      "xs_helps": false
+    },
+    {
+      "horizon_days": 40,
+      "status": "ok",
+      "n_shared_rows": 4765,
+      "base_rate": 0.6203567681007345,
+      "empirical_baseline": {
+        "auc": 0.7624476287933358,
+        "mace": 0.07737397130730406,
+        "n": 4765
+      },
+      "sets": {
+        "path": {
+          "auc": 0.7751297639003899,
+          "mace": 0.06692259350601237
+        },
+        "path_plus_xs": {
+          "auc": 0.793543745712873,
+          "mace": 0.043181165889568544
+        }
+      },
+      "best_set": "path_plus_xs",
+      "xs_lift_auc": 0.018413981812483105,
+      "xs_lift_mace": -0.02374142761644383,
+      "xs_helps": true
+    },
+    {
+      "horizon_days": 60,
+      "status": "ok",
+      "n_shared_rows": 4765,
+      "base_rate": 0.7206715634837356,
+      "empirical_baseline": {
+        "auc": 0.7378456124659621,
+        "mace": 0.10948167770665726,
+        "n": 4765
+      },
+      "sets": {
+        "path": {
+          "auc": 0.7619526658548208,
+          "mace": 0.07201723205521239
+        },
+        "path_plus_xs": {
+          "auc": 0.762133602762318,
+          "mace": 0.09662819654628993
+        }
+      },
+      "best_set": "path_plus_xs",
+      "xs_lift_auc": 0.00018093690749720892,
+      "xs_lift_mace": 0.02461096449107754,
+      "xs_helps": true
+    }
+  ],
+  "cv": "group_kfold_purged_by_transition(k<=5)",
+  "disclaimers": [
+    "Cross-sectional features are leakage-safe (\u2264t contemporaneous regime; no look-ahead).",
+    "xs_lift_auc = path_plus_xs OOF AUC \u2212 path OOF AUC on matched rows.",
+    "Small universe \u21d2 breadth is coarse; lift strengthens with a wider/multi-sector universe.",
+    "Educational research only; not a trading signal."
+  ],
+  "dataset_rows": 4765
+}

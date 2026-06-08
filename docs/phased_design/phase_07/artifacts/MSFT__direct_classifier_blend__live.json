@@ -1,0 +1,67 @@
+{
+  "available": true,
+  "schema": "v13_phase7_direct_classifier_blend_overlay",
+  "policy": "gated_discriminative_overlay_empirical_remains_canonical",
+  "per_horizon": {
+    "10": {
+      "blend_probability": 0.21768963459331384,
+      "classifier_probability": 0.08481490342706403,
+      "empirical_probability": 0.26198121164873045,
+      "blend_weight_classifier": 0.25,
+      "gate": {
+        "passed": true,
+        "auc": 0.8326328122232288,
+        "mace": 0.045209236858911005,
+        "n": 4765,
+        "fail_reasons": []
+      },
+      "gate_passed": true
+    },
+    "20": {
+      "blend_probability": 0.30648651539749666,
+      "classifier_probability": 0.19518525801077546,
+      "empirical_probability": 0.41778777278421786,
+      "blend_weight_classifier": 0.5,
+      "gate": {
+        "passed": true,
+        "auc": 0.8063284265570936,
+        "mace": 0.06820741932157684,
+        "n": 4765,
+        "fail_reasons": []
+      },
+      "gate_passed": true
+    },
+    "40": {
+      "blend_probability": 0.5475887497653014,
+      "classifier_probability": 0.4920626696041024,
+      "empirical_probability": 0.6031148299265005,
+      "blend_weight_classifier": 0.5,
+      "gate": {
+        "passed": true,
+        "auc": 0.8069898964058073,
+        "mace": 0.05388600752998872,
+        "n": 4765,
+        "fail_reasons": []
+      },
+      "gate_passed": true
+    },
+    "60": {
+      "blend_probability": 0.6956989642305726,
+      "classifier_probability": 0.7039510597938738,
+      "empirical_probability": 0.6874468686672716,
+      "blend_weight_classifier": 0.5,
+      "gate": {
+        "passed": true,
+        "auc": 0.7915040167118317,
+        "mace": 0.05846556322747411,
+        "n": 4765,
+        "fail_reasons": []
+      },
+      "gate_passed": true
+    }
+  },
+  "any_gate_passed": true,
+  "interpretation": "Per-horizon blend of the direct horizon classifier (path + cross-sectional features) with the empirical completed-path estimator. The empirical estimate remains the canonical P(retry<=H); this is a gated discriminative overlay.",
+  "disclaimer": "Educational research only. Not financial advice. Not a calibrated trading signal.",
+  "must_not_auto_execute": true
+}

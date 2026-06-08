@@ -392,3 +392,18 @@ point of discrimination over a static count. See the worked tutorial
 
 This is **output-changing but opt-in**: the default envelope is unchanged; enabling `surface_blend`
 adds the labelled, gated overlay. Educational research only; not a trading signal.
+
+## 10. Artifacts
+
+Reproducible snapshots of every Phase 7 measurement live in [`artifacts/`](artifacts/) (real
+9-ticker universe, 4,765 rows / 162 transitions, `as_of = 2026-06-05`):
+
+| File | What it captures |
+|---|---|
+| `headtohead_classifier_vs_empirical.csv` / `phase7_headtohead__classifier_vs_empirical.json` | **PR-B/C** — classifier vs empirical AUC/MACE per horizon (+ GBM diagnostic, promote flag). |
+| `cross_sectional_ladder.csv` / `phase7_cross_sectional_ladder.json` | **PR-D** — path-only vs path+cross-sectional AUC/MACE per horizon + the xs lift. |
+| `generalization_ticker_loo_and_blend.csv` / `phase7_generalization__ticker_loo_and_blend.json` | **PR-E** — transition-purged vs leave-one-ticker-out AUC, generalization gap, weighting effect, and the per-horizon blend (w / AUC / MACE). |
+| `MSFT__direct_classifier_blend__live.json` / `MSFT__blend_per_horizon.csv` | **Consumer wiring** — the live `direct_classifier_blend` overlay block for MSFT 2026-06-05 (the §9 worked example). |
+
+Regenerate with the reproduce snippets in §6/§7 (head-to-head, ladder, generalization) and the
+`build_blend_context` path in §9 (live overlay).
