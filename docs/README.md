@@ -19,6 +19,7 @@ All docs for the V13 Universe Statistical Context Engine.
 
 | Doc | What it covers |
 |---|---|
+| [multi-sector/README.md](multi-sector/README.md) | **Forward-looking analysis & plan** for widening the engine to a multi-sector universe: how to handle sector-dependent behaviour (within-sector normalization, sector-relative cross-section, a sector rung in the estimator hierarchy, sector fixed effects, per-sector gating) and the challenges (sample dilution, base-rate comparability, proxy collinearity, cross-section contamination, point-in-time membership, survivorship, sector rotation, …) + a phased PR roadmap (MS-0…MS-5). **Analysis/plan only — not yet built.** |
 | [phased_design/README.md](phased_design/README.md) | The V13.3 phased roadmap: **Phases 1–7 ✅ ALL DELIVERED** — P1 gap×drawdown evidence, P2 conditional timing, P3 empirical-horizon hazard hardening (P40 fix), P4 calibration + trust gate (V13.7), P5 pooled training + data freshness (9 tickers) — **pooling clears the gate at 10/20/40d** (AUC 0.74–0.82); P6 honest (out-of-fold) gate; **P7 discrimination** — a direct horizon classifier ↔ empirical **blend** (opt-in `surface_blend` overlay) that, under leave-one-ticker-out, lifts blend AUC to 0.79–0.84 and clears the gate at all four horizons. Each phase wrapped with its spec + deliverables + artifacts. |
 
 ## Tutorials
