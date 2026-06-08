@@ -53,12 +53,14 @@ def test_metrics_and_isotonic_shape():
     assert {"horizon_days", "n", "observed_rate", "predicted_mean", "brier_score", "auc",
             "mean_abs_calibration_error_by_bin"}.issubset(metrics.columns)
     iso = fit_isotonic_per_horizon(ds)
-    # isotonic y-thresholds are non-decreasing by construction
+    assert iso, "expected isotonic transforms for the synthetic panel"
     for h, t in iso.items():
         ys = t["y_thresholds"]
-        assert all(ys[i] <= ys[i + 1] + 1e-9 for i in range(len(ys) - 1))
-        # applying knots is bounded in [0,1]
+        assert all(ys[i] <= ys[i + 1] + 1e-9 for i in range(len(ys) - 1))   # monotone by construction
         assert 0.0 <= apply_isotonic_knots(t["x_thresholds"], ys, 0.5) <= 1.0
+        # honest out-of-fold metric is present (purged by transition; 18 groups → k-fold runs)
+        assert t["oof_method"].startswith("group_kfold")
+        assert 0.0 <= t["oof_calibrated_mace"] <= 1.0
 
 
 def test_build_calibration_context_and_gate():
@@ -68,11 +70,12 @@ def test_build_calibration_context_and_gate():
             "distance_to_ma250_pct": -8.0, "drawdown_so_far_pct": 9.0}
     ctx = build_calibration_context(panel, live_row=live)
     assert ctx["available"] is True
-    assert ctx["method"].startswith("purged_leave_one_transition_out")
+    assert "purged" in ctx["method"] and "isotonic" in ctx["method"]
     assert ctx["summary"] and ctx["trust_gate"]
-    # every horizon's gate is a well-formed pass/fail with reasons
+    # every horizon's gate is a well-formed pass/fail; MACE basis is exposed
     for h, g in ctx["trust_gate"].items():
         assert "passed" in g and isinstance(g["fail_reasons"], list)
+        assert g["mace_gate_basis"] in ("oof_isotonic_calibrated", "raw_reliability")
     # live calibrated probabilities are present + bounded
     live_p = ctx["live_calibrated_horizon_probabilities"]
     for h in ("10", "20", "40", "60"):

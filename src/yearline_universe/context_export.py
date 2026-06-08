@@ -185,6 +185,8 @@ def build_statistical_context_envelope(
             "passed": bool(gate40.get("passed")),
             "auc": _f(gate40.get("auc")),
             "mace_raw": _f(gate40.get("mace_raw")),
+            "mace_gate": _f(gate40.get("mace_gate")),               # honest (OOF isotonic) MACE
+            "mace_gate_basis": gate40.get("mace_gate_basis"),
             "fail_reasons": gate40.get("fail_reasons", []),
         }
         retry_hazard_context["surfaced_probability_is_calibrated"] = bool(gate40.get("passed"))

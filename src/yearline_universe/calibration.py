@@ -33,9 +33,12 @@ from .hazard import (
 try:
     from sklearn.metrics import brier_score_loss, log_loss, roc_auc_score
     from sklearn.isotonic import IsotonicRegression
+    from sklearn.model_selection import GroupKFold
     _SKLEARN = True
 except Exception:  # pragma: no cover
     _SKLEARN = False
+
+ISOTONIC_OOF_SPLITS = 5
 
 __all__ = [
     "CALIBRATION_HORIZONS",
@@ -193,44 +196,72 @@ def apply_isotonic_knots(x_thresholds, y_thresholds, p) -> float:
     return float(np.interp(float(np.clip(p, 0, 1)), x_thresholds, y_thresholds))
 
 
-def fit_isotonic_per_horizon(dataset: pd.DataFrame, horizons=None) -> dict[int, dict[str, Any]]:
-    """Fit isotonic(pred→observed) per horizon on the purged OOF predictions.
+def _isotonic_for_horizon(dataset: pd.DataFrame, h: int, n_splits: int = ISOTONIC_OOF_SPLITS) -> dict[str, Any] | None:
+    """Isotonic recalibration for one horizon, with an HONEST out-of-fold error.
 
-    Returns, per horizon, serializable knots (x/y thresholds) + the post-calibration
-    Brier/log-loss/MACE so the transform's value is auditable.
+    - Final knots: isotonic fit on ALL rows (used to transform the live probability).
+    - Honest calibrated MACE/Brier: computed on **out-of-fold** predictions from a
+      GroupKFold **purged by transition_key** — so the calibrated error is *not*
+      the in-sample-optimistic ≈0 we'd get from scoring the transform on its own
+      training rows. This is what the trust gate uses (V13.3 Phase 6).
     """
+    pred_col, actual_col = f"pred_retry_within_{h}d", f"actual_retry_within_{h}d"
+    if dataset is None or dataset.empty or pred_col not in dataset.columns:
+        return None
+    cols = [pred_col, actual_col] + (["transition_key"] if "transition_key" in dataset.columns else [])
+    d = dataset[cols].dropna(subset=[pred_col, actual_col]).reset_index(drop=True)
+    if len(d) < GATE_MIN_N or d[actual_col].nunique() < 2:
+        return None
+    x = d[pred_col].astype(float).clip(0, 1).to_numpy()
+    y = d[actual_col].astype(int).to_numpy()
+    groups = d["transition_key"].astype(str).to_numpy() if "transition_key" in d.columns else np.arange(len(d))
+    try:
+        iso_full = IsotonicRegression(out_of_bounds="clip", y_min=0.0, y_max=1.0).fit(x, y)
+    except Exception:
+        return None
+    xs = np.asarray(iso_full.X_thresholds_, dtype=float)
+    ys = np.asarray(iso_full.y_thresholds_, dtype=float)
+    in_sample_cal = iso_full.predict(x)
+    in_sample_mace = _mace(_reliability_table(pd.DataFrame({pred_col: in_sample_cal, actual_col: y}), pred_col, actual_col, h))
+
+    # Out-of-fold (purged-by-transition) calibrated predictions → honest MACE/Brier.
+    n_groups = int(len(np.unique(groups)))
+    splits = min(n_splits, n_groups)
+    oof_mace = oof_brier = float("nan")
+    oof_method = "insufficient_groups_for_oof"
+    if splits >= 2:
+        oof = np.full(len(d), np.nan)
+        for tr, te in GroupKFold(n_splits=splits).split(x, y, groups):
+            if len(np.unique(y[tr])) < 2:
+                oof[te] = float(y[tr].mean())          # degenerate fold → train base rate
+                continue
+            try:
+                fold = IsotonicRegression(out_of_bounds="clip", y_min=0.0, y_max=1.0).fit(x[tr], y[tr])
+                oof[te] = fold.predict(x[te])
+            except Exception:
+                oof[te] = float(y[tr].mean())
+        m = ~np.isnan(oof)
+        if m.any():
+            oof_mace = _mace(_reliability_table(pd.DataFrame({pred_col: oof[m], actual_col: y[m]}), pred_col, actual_col, h))
+            oof_brier = _safe_brier(y[m], oof[m])
+            oof_method = f"group_kfold_{splits}_purged_by_transition"
+    return {
+        "x_thresholds": [float(v) for v in xs], "y_thresholds": [float(v) for v in ys],
+        "oof_calibrated_mace": oof_mace, "oof_calibrated_brier": oof_brier, "oof_method": oof_method,
+        "in_sample_calibrated_mace": in_sample_mace,  # reference only — optimistic
+    }
+
+
+def fit_isotonic_per_horizon(dataset: pd.DataFrame, horizons=None) -> dict[int, dict[str, Any]]:
+    """Per-horizon isotonic recalibration with honest out-of-fold error (see `_isotonic_for_horizon`)."""
     horizons = horizons or CALIBRATION_HORIZONS
-    out: dict[int, dict[str, Any]] = {}
     if not _SKLEARN:
-        return out
+        return {}
+    out: dict[int, dict[str, Any]] = {}
     for h in horizons:
-        h = int(h)
-        pred_col, actual_col = f"pred_retry_within_{h}d", f"actual_retry_within_{h}d"
-        if dataset is None or dataset.empty or pred_col not in dataset.columns:
-            continue
-        d = dataset[[pred_col, actual_col]].dropna()
-        if len(d) < GATE_MIN_N or d[actual_col].nunique() < 2:
-            continue
-        x = d[pred_col].astype(float).clip(0, 1).to_numpy()
-        y = d[actual_col].astype(int).to_numpy()
-        try:
-            iso = IsotonicRegression(out_of_bounds="clip", y_min=0.0, y_max=1.0)
-            iso.fit(x, y)
-            p_cal = iso.predict(x)
-        except Exception:
-            continue
-        # serializable knots
-        xs = np.asarray(iso.X_thresholds_, dtype=float)
-        ys = np.asarray(iso.y_thresholds_, dtype=float)
-        rel_cal = _reliability_table(
-            pd.DataFrame({pred_col: p_cal, actual_col: y}), pred_col, actual_col, h)
-        out[h] = {
-            "x_thresholds": [float(v) for v in xs],
-            "y_thresholds": [float(v) for v in ys],
-            "post_calibration_brier": _safe_brier(y, p_cal),
-            "post_calibration_log_loss": _safe_log_loss(y, p_cal),
-            "post_calibration_mace": _mace(rel_cal),
-        }
+        info = _isotonic_for_horizon(dataset, int(h))
+        if info is not None:
+            out[int(h)] = info
     return out
 
 
@@ -245,26 +276,32 @@ def _records(df: pd.DataFrame) -> list[dict]:
 
 
 def _gate_for_horizon(metric: Mapping[str, Any], iso: Mapping[str, Any] | None) -> dict[str, Any]:
-    """Gate on AUC (discrimination, transform-invariant), RAW reliability MACE, and n.
+    """Gate on AUC (transform-invariant discrimination) + the HONEST calibrated MACE + n.
 
-    We deliberately do NOT gate on the isotonic post-calibration MACE: it is fit and
-    scored on the same rows here, so it is in-sample-optimistic (≈0) and would make the
-    MACE check vacuous. AUC is invariant to the monotonic isotonic map, so it is the
-    honest discrimination signal.
+    V13.3 Phase 6: the MACE the gate uses is the **out-of-fold** isotonic-calibrated
+    MACE (`oof_calibrated_mace`) — an honest estimate of the *calibrated* probability we
+    surface, not the in-sample-optimistic ≈0. If OOF isn't available (too few transition
+    groups) we fall back to the raw reliability MACE. AUC is unchanged by the monotone
+    isotonic map, so it stays the discrimination signal.
     """
     n = int(metric.get("n") or 0)
     auc = metric.get("auc")
     mace_raw = metric.get("mean_abs_calibration_error_by_bin")
+    oof = (iso or {}).get("oof_calibrated_mace")
+    used_oof = oof is not None and not pd.isna(oof)
+    mace_gate = float(oof) if used_oof else mace_raw
     reasons = []
     if n < GATE_MIN_N:
         reasons.append(f"n<{GATE_MIN_N}")
     if auc is None or pd.isna(auc) or auc < GATE_MIN_AUC:
         reasons.append(f"auc<{GATE_MIN_AUC}")
-    if mace_raw is None or pd.isna(mace_raw) or mace_raw > GATE_MAX_MACE:
-        reasons.append(f"mace_raw>{GATE_MAX_MACE}")
+    if mace_gate is None or pd.isna(mace_gate) or mace_gate > GATE_MAX_MACE:
+        reasons.append(f"calibrated_mace>{GATE_MAX_MACE}" if used_oof else f"mace_raw>{GATE_MAX_MACE}")
     return {"passed": len(reasons) == 0, "n": n,
             "auc": (None if auc is None or pd.isna(auc) else float(auc)),
             "mace_raw": (None if mace_raw is None or pd.isna(mace_raw) else float(mace_raw)),
+            "mace_gate": (None if mace_gate is None or pd.isna(mace_gate) else float(mace_gate)),
+            "mace_gate_basis": ("oof_isotonic_calibrated" if used_oof else "raw_reliability"),
             "fail_reasons": reasons}
 
 
@@ -302,9 +339,9 @@ def build_calibration_context(panel: pd.DataFrame, horizons=None,
             "predicted_mean": m["predicted_mean"], "brier_score": m["brier_score"],
             "log_loss": m["log_loss"], "auc": m["auc"],
             "mace_raw": m["mean_abs_calibration_error_by_bin"],
-            # in-sample (optimistic) — NOT used by the gate; see disclaimers.
-            "mace_calibrated_in_sample": (iso or {}).get("post_calibration_mace"),
-            "brier_calibrated_in_sample": (iso or {}).get("post_calibration_brier"),
+            "mace_calibrated_oof": (iso or {}).get("oof_calibrated_mace"),   # honest (gate uses this)
+            "brier_calibrated_oof": (iso or {}).get("oof_calibrated_brier"),
+            "mace_calibrated_in_sample": (iso or {}).get("in_sample_calibrated_mace"),  # optimistic, reference only
             "trust_gate_passed": g["passed"],
         })
 
@@ -312,7 +349,7 @@ def build_calibration_context(panel: pd.DataFrame, horizons=None,
         "available": True,
         "schema_version": CALIBRATION_SCHEMA_VERSION,
         "probability_policy": HORIZON_PROB_POLICY,
-        "method": "purged_leave_one_transition_out_horizon_calibration_plus_isotonic",
+        "method": "purged_LOTO_horizon_calibration + out_of_fold_isotonic (V13.3 Phase 6)",
         "n_calibration_rows": int(len(dataset)),
         "n_transitions": int(dataset["transition_key"].nunique()) if "transition_key" in dataset.columns else None,
         "horizons": [int(h) for h in horizons],
@@ -324,8 +361,9 @@ def build_calibration_context(panel: pd.DataFrame, horizons=None,
         "disclaimers": [
             "Calibrates the empirical completed-path estimator (not the diagnostic model curve).",
             "Purged, transition-aware (leave-one-transition-out) — no own-outcome leakage.",
-            "Trust gate uses AUC (discrimination) + RAW reliability MACE + n; it does NOT use the "
-            "isotonic post-calibration MACE, which is in-sample-optimistic (fit and scored on the same rows).",
+            "Trust gate uses AUC (discrimination) + the HONEST out-of-fold isotonic-calibrated MACE "
+            "(group-k-fold purged by transition) + n. The in-sample calibrated MACE is reported for "
+            "reference only (it is optimistic ≈0 by construction and is NOT used by the gate).",
             "A horizon's probability is trustworthy only where trust_gate.passed is true.",
             "Not financial advice; evidence overlay only.",
         ],

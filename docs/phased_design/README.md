@@ -30,6 +30,7 @@ and Phase 4 ports the V12.6 harness that scores it.
 | **3** | Hazard **hardening** — port the V12.4.1 empirical-horizon policy: empirical completed-path P(retry≤H) as canonical, model kept for `hazard_today`, state-hold-forward demoted to diagnostic (threaded through hazard/replay/envelope) | ✅ DELIVERED | [phase_03/](phase_03/) |
 | **4** | **Calibration** (V13.7) — port the V12.6 horizon-reliability harness (scores the empirical estimator), add isotonic + purged transition-aware splits, fill `calibration_context` + a per-horizon **trust gate** (opt-in `calibrate=True`) | ✅ DELIVERED | [phase_04/](phase_04/) |
 | **5** | Supporting — **pooled** hazard/reference/calibration training + universe **data freshness** (9 tickers current). **Pooling clears the Phase 4 trust gate at 10/20/40d.** | ✅ DELIVERED | [phase_05/](phase_05/) |
+| **6** | **Honest gate** — gate on an out-of-fold (purged-by-transition) isotonic-calibrated MACE, not the in-sample-optimistic value. Tightens 40d; shows 60d is sample/regime-limited (honest abstention). | ✅ DELIVERED | [phase_06/](phase_06/) |
 
 Recommended order: 1 → 2 (ship validated value) → 3 → 4 (make any probability
 trustworthy), with 5 supporting throughout. Execution pauses for a go-check between
