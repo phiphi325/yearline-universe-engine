@@ -556,9 +556,14 @@ value-first, trust-last PHASED roadmap (see docs/phased_design/):
        empirical AUC to 0.74–0.82 ⇒ the Phase 4 trust gate PASSES at 10/20/40d (60d
        marginal). Reproduces the V12.6 pooled metrics. See phased_design/phase_05/.
 
-  ROADMAP COMPLETE: Phases 1–5 delivered. Natural follow-ons (not yet scheduled):
-  per-sector/peer calibration; compute-once pooled calibration (cost); a nightly
-  data-refresh job; V13.4 dashboard plots; V13.6 universe replay sweep; V13.8 adapter.
+  ROADMAP COMPLETE: Phases 1–7 delivered (P6 honest gate; P7 direct classifier +
+  cross-sectional + leave-one-ticker-out + gated blend overlay surface_blend). Natural
+  follow-ons (not yet scheduled): per-sector/peer calibration; nightly data-refresh job;
+  V13.4 dashboard plots; V13.6 universe replay sweep; V13.8 adapter. Forward-looking
+  analysis docs on main: docs/multi-sector/ (widen the universe), docs/option-mgmt-integration/
+  (feed option-mgmt-2026 + two-repo strategy), docs/research/01_retry_success_probability
+  (make the retry-SUCCESS/quality probability trustworthy — currently a gated-off prototype;
+  distinct from the mature retry-OCCURRENCE P(retry<=H)).
     6. Phase 5 — V13.2 pooled hazard/ML training via the existing pooled_data hook
        (training_scope -> pooled_universe; envelope schema unchanged) + a
        data-freshness step (Track 1 item 3) to bring the universe to current data.

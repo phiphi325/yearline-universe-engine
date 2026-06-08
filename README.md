@@ -86,6 +86,13 @@ only as a labelled diagnostic. With `calibrate=True` the engine fills
 `calibration_context` and a per-horizon **trust gate**; with `pool_hazard=True` the
 estimate is computed on the pooled universe (which is what makes it pass the gate).
 
+**Occurrence vs success — two different probabilities.** `P(retry ≤ H)` above is retry
+**occurrence** (*will it retouch the yearline within H days?*). The distinct question of retry
+**success** (*given an attempt, will it reclaim and **hold** above the line?*) is answered only by a
+**prototype** quality classifier (`fit_retry_quality_classifier`, opt-in `fit_ml_models=True`,
+uncalibrated, **not surfaced** in the envelope). Making that success probability trustworthy is a
+research track — see `docs/research/01_retry_success_probability_2026-06-08.md`.
+
 **The discriminative overlay (P7).** With `surface_blend=True` (opt-in, pooled-only) the
 envelope gains an **additive**, gated `direct_classifier_blend` block: a direct horizon
 classifier (path + cross-sectional features) **blended** per-horizon with the empirical
@@ -231,6 +238,9 @@ See **`docs/README.md`** for the full index. Highlights:
   feature flags · 03 empirical-estimator-over-model-extrapolation (P3) · 04 calibration & trust-gating
   (P4) · 05 AUC & calibration for ML students · 06 direct horizon classifier & the blend (P7) ·
   07 the MSFT 2026-06-05 low-readiness-repair blend walkthrough (P7 worked example).
+- `docs/research/` — research notes on improving/validating specific estimators. **`01_retry_success_probability_2026-06-08.md`** — occurrence vs **success** probability, the prototype quality classifier today, and the playbook + validation to make retry-success trustworthy.
+- `docs/multi-sector/` — forward-looking analysis + phased plan for widening to a multi-sector universe (sector-dependence handling + challenges + MS-0…MS-5). *Plan only.*
+- `docs/option-mgmt-integration/` — assessment + design/plan + **two-repo strategy** for feeding this engine's context into the `option-mgmt-2026` decision engine. *Plan only.*
 - `docs/uploaded/` — the V12 benchmark notebook, the V12 reports, and the 9-ticker data export (catalog in its README).
 
 ## Performance

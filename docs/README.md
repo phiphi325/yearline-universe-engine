@@ -23,6 +23,12 @@ All docs for the V13 Universe Statistical Context Engine.
 | [multi-sector/README.md](multi-sector/README.md) | **Forward-looking analysis & plan** for widening the engine to a multi-sector universe: how to handle sector-dependent behaviour (within-sector normalization, sector-relative cross-section, a sector rung in the estimator hierarchy, sector fixed effects, per-sector gating) and the challenges (sample dilution, base-rate comparability, proxy collinearity, cross-section contamination, point-in-time membership, survivorship, sector rotation, …) + a phased PR roadmap (MS-0…MS-5). **Analysis/plan only — not yet built.** |
 | [phased_design/README.md](phased_design/README.md) | The V13.3 phased roadmap: **Phases 1–7 ✅ ALL DELIVERED** — P1 gap×drawdown evidence, P2 conditional timing, P3 empirical-horizon hazard hardening (P40 fix), P4 calibration + trust gate (V13.7), P5 pooled training + data freshness (9 tickers) — **pooling clears the gate at 10/20/40d** (AUC 0.74–0.82); P6 honest (out-of-fold) gate; **P7 discrimination** — a direct horizon classifier ↔ empirical **blend** (opt-in `surface_blend` overlay) that, under leave-one-ticker-out, lifts blend AUC to 0.79–0.84 and clears the gate at all four horizons. Each phase wrapped with its spec + deliverables + artifacts. |
 
+## Research
+
+| Doc | What it covers |
+|---|---|
+| [research/01_retry_success_probability_2026-06-08.md](research/01_retry_success_probability_2026-06-08.md) | Retry **occurrence** vs retry **success** — two different probabilities. How the tool answers retry-success today (a gated-off, uncalibrated **prototype** `fit_retry_quality_classifier` that barely beats the base rate), the canonical success label (`confirm_days` + `success_hold_days` hold), why it's hard (the sample is *attempts*, not rows), and the concrete playbook (pool → readiness/cross-sectional features → empirical base-rate baseline → classifier blend → calibrate + trust gate + abstain) and **validation** (leave-one-ticker-out, lift over base rate, calibration, walk-forward) to make it trustworthy. Plus the useful occurrence×success composite. |
+
 ## Tutorials
 
 Seven numbered tutorials (built in roughly the project's phase order). See the index for the full table.

@@ -358,6 +358,7 @@ whether on or off — when on, the predictions are attached to
 | `p_retry_within_*` is `null` | Expected — hazard is gated off while the trend engine is active. |
 | Canonical `p_retry_within_*` looks saturated (≈1.0) | You're likely reading `diagnostic_model_state_hold_forward` (the demoted, saturating model curve). The **canonical** `p_retry_within_*` is the empirical estimate and is not pinned at 1.0 (V13.3 Phase 3); see §7–§8. |
 | Is the hazard probability calibrated/trustworthy? | Default = no (`calibration_context.available=false`). Run `calibrate=True`; check `surfaced_probability_is_calibrated` + `calibration_gate_40d`. On thin single-ticker data the gate fails by design — needs a wider universe (Phase 5). |
+| Can I get the probability a retry **succeeds** (reclaims and holds)? | Different question from `p_retry_within_*` (which is retry **occurrence**/timing). Retry **success** is a **prototype** only: run `fit_ml_models=True` and read `result.manifest["ml_models"]` (`p_next_retry_success` / `quality_bucket`). It is **uncalibrated, not in the envelope, and barely beats the base rate** — treat as exploratory. The plan to make it trustworthy (pool → readiness features → empirical baseline → classifier blend → calibrate + trust gate) and its validation are in `docs/research/01_retry_success_probability_2026-06-08.md`. |
 | A ticker shows `status: "error"` in the manifest | Per-ticker failure isolation; read `manifest.error` / `traceback`. |
 
 ---
