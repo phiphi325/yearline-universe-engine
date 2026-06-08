@@ -39,14 +39,21 @@ from .features import (
     repair_path_features_at,
     PATH_FEATURE_COLUMNS,
 )
+from .cross_sectional import (
+    build_cross_sectional_features,
+    CROSS_SECTIONAL_FEATURE_COLUMNS,
+)
 from .labels import (
     build_direct_horizon_dataset,
     MODEL_FEATURE_COLUMNS,
+    MODEL_FEATURE_COLUMNS_WITH_XS,
 )
 from .models import (
     fit_direct_horizon_models,
     evaluate_direct_horizon_models,
     build_and_evaluate_direct_horizon_models,
+    compare_feature_sets,
+    build_and_compare_cross_sectional,
     DIRECT_MODEL_VERSION,
 )
 from .validation import (
@@ -80,11 +87,16 @@ __all__ = [
     "build_price_path_features",
     "repair_path_features_at",
     "PATH_FEATURE_COLUMNS",
+    "build_cross_sectional_features",
+    "CROSS_SECTIONAL_FEATURE_COLUMNS",
     "build_direct_horizon_dataset",
     "MODEL_FEATURE_COLUMNS",
+    "MODEL_FEATURE_COLUMNS_WITH_XS",
     "fit_direct_horizon_models",
     "evaluate_direct_horizon_models",
     "build_and_evaluate_direct_horizon_models",
+    "compare_feature_sets",
+    "build_and_compare_cross_sectional",
     "DIRECT_MODEL_VERSION",
     "validate_ticker_sanity",
     "validate_reference_parity",

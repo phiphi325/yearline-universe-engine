@@ -29,8 +29,12 @@ from .config import StudyConfig
 from .hazard import build_hazard_daily_panel, build_empirical_horizon_reference, HAZARD_HORIZONS
 from .calibration import build_horizon_calibration_dataset
 from .features import build_price_path_features, PATH_FEATURE_COLUMNS
+from .cross_sectional import build_cross_sectional_features, CROSS_SECTIONAL_FEATURE_COLUMNS
 
-__all__ = ["MODEL_FEATURE_COLUMNS", "build_direct_horizon_dataset"]
+__all__ = [
+    "MODEL_FEATURE_COLUMNS", "MODEL_FEATURE_COLUMNS_WITH_XS",
+    "CROSS_SECTIONAL_FEATURE_COLUMNS", "build_direct_horizon_dataset",
+]
 
 # Static repair-state features already on the panel (kept de-correlated).
 _PANEL_STATE_FEATURES = [
@@ -48,14 +52,21 @@ _PATH_MODEL_FEATURES = [
     "realized_vol_20d", "realized_vol_20d_pctile_252d", "range_compression_10d",
 ]
 MODEL_FEATURE_COLUMNS = _PANEL_STATE_FEATURES + _PATH_MODEL_FEATURES
+# PR-D: path/static features + cross-sectional (peer/sector/market) regime features.
+MODEL_FEATURE_COLUMNS_WITH_XS = MODEL_FEATURE_COLUMNS + CROSS_SECTIONAL_FEATURE_COLUMNS
 
 
 def build_direct_horizon_dataset(tickers_data: Mapping[str, Mapping[str, Any]],
-                                 config: StudyConfig | None = None, horizons=None) -> pd.DataFrame:
+                                 config: StudyConfig | None = None, horizons=None,
+                                 include_cross_sectional: bool = True) -> pd.DataFrame:
     """Build the per-row modeling table (features + y_H + empirical-baseline pred).
 
     ``tickers_data[ticker]`` = {peer_group, price_df, recovery_table, live_diagnostic}
     (the universe runner's pooled_data). Returns an empty frame if there is no panel.
+
+    ``include_cross_sectional`` (PR-D, default True): also merge the peer/sector/market
+    cross-sectional regime features (``CROSS_SECTIONAL_FEATURE_COLUMNS``) by
+    (ticker, as_of_date), so a path-only vs path+cross-sectional head-to-head is possible.
     """
     config = config or StudyConfig()
     horizons = [int(h) for h in (horizons or HAZARD_HORIZONS)]
@@ -94,4 +105,12 @@ def build_direct_horizon_dataset(tickers_data: Mapping[str, Mapping[str, Any]],
         emp_cols = [c for c in emp_cols if c in emp.columns]
         df = df.merge(emp[emp_cols].rename(columns={f"pred_retry_within_{h}d": f"empirical_pred_{h}" for h in horizons}),
                       on=["transition_key", "trading_days_since_touch"], how="left")
+
+    # PR-D: cross-sectional (peer/sector/market) regime features, merged on (ticker, as_of_date).
+    if include_cross_sectional:
+        xs = build_cross_sectional_features(tickers_data, config)
+        if not xs.empty:
+            xs = xs.copy()
+            xs["as_of_date"] = pd.to_datetime(xs["as_of_date"])
+            df = df.merge(xs, on=["ticker", "as_of_date"], how="left")
     return df

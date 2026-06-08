@@ -10,7 +10,7 @@ import pandas as pd
 
 from yearline_universe.labels import MODEL_FEATURE_COLUMNS
 from yearline_universe.models import (
-    evaluate_direct_horizon_models, fit_direct_horizon_models,
+    evaluate_direct_horizon_models, fit_direct_horizon_models, compare_feature_sets,
     make_direct_horizon_logistic, DIRECT_MODEL_VERSION,
 )
 
@@ -100,6 +100,26 @@ def test_fit_models_returns_scorable_pipeline():
     X = ds[fit["features"]].head(3).to_numpy(dtype=float)
     p = fit["models"][h].predict_proba(X)[:, 1]
     assert ((p >= 0) & (p <= 1)).all()
+
+
+def test_compare_feature_sets_ladder():
+    """The PR-D feature-set ladder runs each set through the same head-to-head and reports
+    a per-horizon lift. A richer feature set should not score *below* a strict subset by
+    much out-of-fold; the test asserts the plumbing (matched rows, lift fields, best_set)."""
+    ds = _synthetic_model_table(n_transitions=50, seed=2)
+    small = ["trading_days_since_touch", "repair_gap_pct", "return_5d"]
+    res = compare_feature_sets(ds, {"path": small, "path_plus_xs": MODEL_FEATURE_COLUMNS},
+                               horizons=[20, 40])
+    assert res["available"] is True
+    assert res["set_names"] == ["path", "path_plus_xs"]
+    for r in res["horizons"]:
+        if r["status"] != "ok":
+            continue
+        assert set(r["sets"]) == {"path", "path_plus_xs"}
+        assert r["best_set"] in ("path", "path_plus_xs")
+        # empirical baseline is shared across sets (matched rows)
+        assert "auc" in r["empirical_baseline"]
+        assert "xs_lift_auc" in r and isinstance(r["xs_helps"], bool)
 
 
 def test_empty_dataset_is_graceful():
