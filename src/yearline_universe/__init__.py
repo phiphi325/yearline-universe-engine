@@ -39,6 +39,16 @@ from .features import (
     repair_path_features_at,
     PATH_FEATURE_COLUMNS,
 )
+from .labels import (
+    build_direct_horizon_dataset,
+    MODEL_FEATURE_COLUMNS,
+)
+from .models import (
+    fit_direct_horizon_models,
+    evaluate_direct_horizon_models,
+    build_and_evaluate_direct_horizon_models,
+    DIRECT_MODEL_VERSION,
+)
 from .validation import (
     validate_ticker_sanity,
     validate_reference_parity,
@@ -70,6 +80,12 @@ __all__ = [
     "build_price_path_features",
     "repair_path_features_at",
     "PATH_FEATURE_COLUMNS",
+    "build_direct_horizon_dataset",
+    "MODEL_FEATURE_COLUMNS",
+    "fit_direct_horizon_models",
+    "evaluate_direct_horizon_models",
+    "build_and_evaluate_direct_horizon_models",
+    "DIRECT_MODEL_VERSION",
     "validate_ticker_sanity",
     "validate_reference_parity",
     "ml_feature_leakage_audit",
