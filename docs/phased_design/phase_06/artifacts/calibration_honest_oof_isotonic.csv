@@ -1,0 +1,5 @@
+horizon_days,n,auc,mace_raw,mace_calibrated_oof_honest,gate_mace_basis,trust_gate_passed,note
+10,4765,0.816,0.036,0.055,oof_isotonic_calibrated,True,already well-calibrated
+20,4765,0.779,0.048,0.047,oof_isotonic_calibrated,True,~unchanged
+40,4765,0.762,0.077,0.056,oof_isotonic_calibrated,True,isotonic tightens calibration
+60,4765,0.738,0.109,0.130,oof_isotonic_calibrated,False,isotonic cannot help; sample-limited (needs more data)

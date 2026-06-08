@@ -267,7 +267,11 @@ magnitudes.
   to fill `calibration_context` and a per-horizon **trust gate**; then read
   `retry_hazard_context.surfaced_probability_is_calibrated` and `calibration_gate_40d`.
   On thin single-ticker data the gate **correctly fails** (low AUC) — i.e. don't trust
-  the magnitude until a wider universe (Phase 5) lets it pass.
+  the magnitude until a wider universe (Phase 5) lets it pass. The gate's MACE is the
+  **honest out-of-fold** isotonic-calibrated error (purged by transition; Phase 6) —
+  `calibration_gate_40d.mace_gate_basis` shows whether it's `oof_isotonic_calibrated` or
+  the `raw_reliability` fallback. Pooled (Phase 5) it passes at 10/20/40d; **60d stays a
+  diagnostic abstention** (sample/regime-limited — recalibration can't fix it).
 
 ---
 
