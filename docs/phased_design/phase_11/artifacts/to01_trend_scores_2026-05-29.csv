@@ -1,0 +1,7 @@
+ticker,active_engine,mode_state,trend_state,distance_to_ma250_pct,trend_quality,pullback_quality,overextension,deterioration
+AAPL,post_confirmation_trend_engine,accepted_above_watch,overextended_trend,24.02,0.757,0.994,0.99,0.003
+AMZN,post_confirmation_trend_engine,accepted_above_watch,healthy_trend,18.09,0.612,0.934,0.633,0.033
+NVDA,post_confirmation_trend_engine,accepted_above_watch,pullback_but_intact,15.81,0.384,0.565,0.381,0.241
+QQQ,post_confirmation_trend_engine,accepted_above_watch,overextended_trend,22.42,0.722,1.0,0.818,0.0
+XLK,post_confirmation_trend_engine,accepted_above_watch,overextended_trend,35.2,0.708,1.0,0.903,0.0
+GOOGL,post_confirmation_trend_engine,transition_watch,overextended_trend,37.78,0.637,0.769,0.675,0.115

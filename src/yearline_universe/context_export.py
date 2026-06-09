@@ -201,6 +201,7 @@ def build_statistical_context_envelope(
     trend_context = {
         "active": active_engine == "post_confirmation_trend_engine",
         "trend_state": latest.get("post_confirmation_trend_state"),
+        "distance_to_ma250_pct": _f(latest.get("distance_to_ma250_pct")),
         "trend_quality_score": _f(latest.get("trend_quality_score")),
         "pullback_quality_score": _f(latest.get("pullback_quality_score")),
         "overextension_score": _f(latest.get("overextension_score")),

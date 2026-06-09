@@ -18,9 +18,10 @@ The 9-name universe split into **three regimes** on 2026-05-29:
 
 - **Repair (below the yearline, a retry is *live*): MSFT, META, IGV.** These are the names where the
   retry-occurrence and retry-success questions are directly meaningful.
-- **Trend (above the yearline, in a post-confirmation uptrend): AAPL, AMZN, NVDA, QQQ, XLK.** The retry
-  question is **dormant** here (`retry_hazard_context.active = false`).
-- **Transitional: GOOGL** (`unknown_or_transition`, +37.8% above its yearline).
+- **Trend (above the yearline, in a post-confirmation uptrend): AAPL, AMZN, NVDA, QQQ, XLK, GOOGL.** The
+  retry question is **dormant** here (`retry_hazard_context.active = false`). *(GOOGL was originally
+  orphaned as `unknown_or_transition`; the Track D TO-0 handoff fix — see `../../phased_design/phase_11/` —
+  now routes it to the trend engine like the other above-MA250 names.)*
 
 **The standout: MSFT.** A deep repair (drew down to ~23% below its MA250) that had rallied back to **just
 −3.0%** below the yearline by 2026-05-29 (it jumped +5.4% that day). The model reads it as **very likely to
@@ -69,7 +70,7 @@ otherwise it is withheld (diagnostic). Horizons reported: **10 / 20 / 40 / 60** 
 | NVDA | ai_accelerator | Trend (pullback) | +15.8% | 4.2% | — (dormant) | — (withheld) | — | — (withheld) |
 | QQQ | etf_context | Trend (overextended) | +22.4% | 1.0% | — (dormant) | — (withheld) | — | — (withheld) |
 | XLK | etf_context | Trend (overextended) | +35.2% | 1.4% | — (dormant) | — (withheld) | — | — (withheld) |
-| GOOGL | mega_cap_software_like | Transitional | +37.8% | 6.6% | — (dormant) | — (withheld) | — | — (withheld) |
+| GOOGL | mega_cap_software_like | Trend (overextended) | +37.8% | 6.6% | — (dormant) | — (withheld) | — | — (withheld) |
 
 **"withheld"** = the **retry-success overlay is not surfaced** for names where the repair engine is not
 active (trend-mode / `unknown_or_transition`) — there is no pending retry to condition on. This is the
@@ -116,16 +117,19 @@ pending and the full occurrence → success → composite chain applies.
 
 ## 5. Trend-mode names — retry dormant (above the yearline)
 
-AAPL, AMZN, NVDA, QQQ, XLK are all comfortably **above** their yearline (+16% to +35%) in
-post-confirmation uptrends; GOOGL (+37.8%) is in a transitional state. For all of these the engine
-correctly reports the retry-occurrence question as **dormant** (`retry_hazard_context.active = false`,
-`P(retry≤H) = None`) — there is no pending yearline touch to estimate. **The engine therefore withholds the
-entire `retry_success_context` overlay for these names** (the §6.1 fix): a success probability conditioned
-on a retry, and a composite multiplying it by a (non-existent) occurrence, would both be misleading.
+AAPL, AMZN, NVDA, QQQ, XLK — and **GOOGL** (now routed to the trend engine by the Track D TO-0 handoff fix,
+no longer orphaned) — are all comfortably **above** their yearline (+16% to +38%) in post-confirmation
+uptrends. For all of these the engine correctly reports the retry-occurrence question as **dormant**
+(`retry_hazard_context.active = false`, `P(retry≤H) = None`) — there is no pending yearline touch to
+estimate. **The engine therefore withholds the entire `retry_success_context` overlay for these names**
+(the §6.1 fix): a success probability conditioned on a retry, and a composite multiplying it by a
+(non-existent) occurrence, would both be misleading.
 
-For these names the relevant surface is the **post-confirmation trend engine** (`trend_quality_score`,
-`overextension_score`, etc. — though those scores have their own known weaknesses; see
-`docs/research/03/04` and the Track D plan `planner/05_trend_outlook_plan.md`).
+For these names the relevant surface is the **post-confirmation trend engine**. Its scores were enhanced by
+Track D **TO-1** (`../../phased_design/phase_11/`): de-saturated + de-collinearized, so `trend_quality` now
+**spreads 0.38–0.76** across these names (NVDA's choppy pullback 0.38 → AAPL's clean trend 0.76) instead of
+pegging at ≈1.0, and `distance_to_ma250_pct` is now populated in the trend context. They remain
+**descriptive** (not yet a gated probability — TO-2…TO-4); see `../../phased_design/planner/05_trend_outlook_plan.md`.
 
 *Diagnostic only (computed internally, **not** surfaced): the conditional `P(success│retry)` for these
 states ranged NVDA 0.29 > XLK 0.25 ≈ QQQ 0.25 > AAPL 0.20 ≈ AMZN 0.20 > GOOGL 0.18 — a "**if** this name

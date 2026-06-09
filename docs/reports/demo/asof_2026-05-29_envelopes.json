@@ -131,6 +131,7 @@
     "post_confirmation_trend_context": {
       "active": false,
       "trend_state": null,
+      "distance_to_ma250_pct": -2.9670302776839907,
       "trend_quality_score": null,
       "pullback_quality_score": null,
       "overextension_score": null,
@@ -1597,10 +1598,11 @@
     "post_confirmation_trend_context": {
       "active": true,
       "trend_state": "overextended_trend",
-      "trend_quality_score": 0.9976000128763876,
-      "pullback_quality_score": 0.9976000128763876,
+      "distance_to_ma250_pct": 24.015969405066894,
+      "trend_quality_score": 0.7570380178613988,
+      "pullback_quality_score": 0.9940000321909689,
       "overextension_score": 0.990159694050669,
-      "deterioration_risk_score": 0.002399987123612446,
+      "deterioration_risk_score": 0.0029999839045155574,
       "drawdown_from_post_confirmation_peak_pct": 0.14399922741674676,
       "days_since_confirmation": 202,
       "semantics": "active_post_confirmation_metric"
@@ -2490,9 +2492,9 @@
       "data_as_of": "2026-05-29"
     },
     "active_engine_context": {
-      "active_engine": "unknown_or_transition",
+      "active_engine": "post_confirmation_trend_engine",
       "mode_state": "transition_watch",
-      "handoff_interpretation": "Unknown or transition state. Review both repair and post-confirmation modules."
+      "handoff_interpretation": "Post-confirmation trend engine is active. Retry-hazard metrics are not applicable; focus on trend quality, pullback quality, overextension, and deterioration risk."
     },
     "repair_retry_context": {
       "active": false,
@@ -2517,21 +2519,22 @@
       "semantics": "not_applicable_post_confirmation_handoff"
     },
     "post_confirmation_trend_context": {
-      "active": false,
-      "trend_state": "pullback_but_intact",
-      "trend_quality_score": 0.907770771129569,
-      "pullback_quality_score": 0.907770771129569,
+      "active": true,
+      "trend_state": "overextended_trend",
+      "distance_to_ma250_pct": 37.775029915074334,
+      "trend_quality_score": 0.6374812717671757,
+      "pullback_quality_score": 0.7694269278239227,
       "overextension_score": 0.674669107570816,
-      "deterioration_risk_score": 0.0922292288704309,
+      "deterioration_risk_score": 0.11528653608803863,
       "drawdown_from_post_confirmation_peak_pct": 5.533753732225854,
       "days_since_confirmation": 232,
-      "semantics": "inactive_until_yearline_acceptance"
+      "semantics": "active_post_confirmation_metric"
     },
     "retry_timing_context": {
       "schema": "v13_retry_timing_conditional_estimators",
       "active": false,
       "reason": "repair_engine_dormant_or_accepted_above_yearline",
-      "active_engine": "unknown_or_transition",
+      "active_engine": "post_confirmation_trend_engine",
       "live_state": "accepted_above_yearline",
       "note": "Conditional retry-timing is only computed while the repair/retry engine is active (price below or testing MA250 with a pending next touch).",
       "must_not_auto_execute": true
@@ -3377,9 +3380,13 @@
       }
     },
     "option_overlay_research_hint": {
-      "active_engine": "unknown_or_transition",
-      "research_hint": null,
-      "candidate_action_bias": [],
+      "active_engine": "post_confirmation_trend_engine",
+      "research_hint": "careful_extension_monetization_without_bearish_flip",
+      "candidate_action_bias": [
+        "SELL_COVERED_CALL_PARTIAL",
+        "ROLL_UP_AND_OUT",
+        "NO_OP"
+      ],
       "must_not_auto_execute": true
     },
     "warnings": [
@@ -3437,10 +3444,11 @@
     "post_confirmation_trend_context": {
       "active": true,
       "trend_state": "healthy_trend",
-      "trend_quality_score": 0.9382914103778126,
-      "pullback_quality_score": 0.9681766953418385,
+      "distance_to_ma250_pct": 18.09256892064297,
+      "trend_quality_score": 0.6122874389458347,
+      "pullback_quality_score": 0.9340888887143374,
       "overextension_score": 0.6333761064465008,
-      "deterioration_risk_score": 0.026364444514265045,
+      "deterioration_risk_score": 0.032955555642831307,
       "drawdown_from_post_confirmation_peak_pct": 1.5818666708559026,
       "days_since_confirmation": 36,
       "semantics": "active_post_confirmation_metric"
@@ -4444,6 +4452,7 @@
     "post_confirmation_trend_context": {
       "active": false,
       "trend_state": null,
+      "distance_to_ma250_pct": -6.404441601785759,
       "trend_quality_score": null,
       "pullback_quality_score": null,
       "overextension_score": null,
@@ -5567,10 +5576,11 @@
     "post_confirmation_trend_context": {
       "active": true,
       "trend_state": "pullback_but_intact",
-      "trend_quality_score": 0.826079566721889,
-      "pullback_quality_score": 0.826079566721889,
+      "distance_to_ma250_pct": 15.811955824199408,
+      "trend_quality_score": 0.3842688974320694,
+      "pullback_quality_score": 0.5651989168047225,
       "overextension_score": 0.3813143733379491,
-      "deterioration_risk_score": 0.173920433278111,
+      "deterioration_risk_score": 0.24148680896074584,
       "drawdown_from_post_confirmation_peak_pct": 10.43522599668666,
       "days_since_confirmation": 41,
       "semantics": "active_post_confirmation_metric"
@@ -6487,7 +6497,8 @@
     "post_confirmation_trend_context": {
       "active": true,
       "trend_state": "overextended_trend",
-      "trend_quality_score": 0.9860419430475269,
+      "distance_to_ma250_pct": 22.42055123382114,
+      "trend_quality_score": 0.7223710686734053,
       "pullback_quality_score": 1.0,
       "overextension_score": 0.8179881834850272,
       "deterioration_risk_score": 0.0,
@@ -7409,7 +7420,8 @@
     "post_confirmation_trend_context": {
       "active": true,
       "trend_state": "overextended_trend",
-      "trend_quality_score": 1.0,
+      "distance_to_ma250_pct": 35.20199337205725,
+      "trend_quality_score": 0.7077442338581683,
       "pullback_quality_score": 1.0,
       "overextension_score": 0.9033762927938713,
       "deterioration_risk_score": 0.0,
@@ -8350,6 +8362,7 @@
     "post_confirmation_trend_context": {
       "active": false,
       "trend_state": null,
+      "distance_to_ma250_pct": -5.1375247359357274,
       "trend_quality_score": null,
       "pullback_quality_score": null,
       "overextension_score": null,
