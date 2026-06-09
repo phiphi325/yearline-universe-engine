@@ -112,12 +112,11 @@ def test_retry_success_context_success_gate_fail_blocks_surfacing():
     assert ctx["successful_reclaim_within_horizon"]["40"]["surfaced_probability"] is None
 
 
-def _envelope(success_context=None):
+def _envelope(success_context=None, active_engine="repair_retry_hazard_engine"):
+    card = {"as_of_date": "2020-01-01", "active_engine": active_engine}
     return build_statistical_context_envelope(
         "AAA", "Technology", "software_like",
-        semantic_card={"as_of_date": "2020-01-01", "active_engine": "repair_retry_hazard_engine"},
-        latest_semantic_row={"as_of_date": "2020-01-01", "active_engine": "repair_retry_hazard_engine"},
-        success_context=success_context,
+        semantic_card=card, latest_semantic_row=card, success_context=success_context,
     )
 
 
@@ -125,6 +124,16 @@ def test_envelope_byte_identical_when_off():
     # default: no success surfacing ⇒ key absent (byte-identical)
     assert "retry_success_context" not in _envelope(None)
     assert "retry_success_context" not in _envelope({"available": False, "warning": "x"})
-    # surfaced ⇒ attached as a top-level block
+    # surfaced ⇒ attached as a top-level block (repair engine active)
     env = _envelope({"available": True, "p_success_given_retry": 0.42, "gate_passed": True})
     assert env["retry_success_context"]["p_success_given_retry"] == 0.42
+
+
+def test_success_overlay_withheld_when_repair_engine_inactive():
+    # research 02 Part A: for trend-mode / unknown_or_transition names the retry question is dormant,
+    # so even an AVAILABLE success_context must NOT be surfaced (no phantom-occurrence composite).
+    sc = {"available": True, "p_success_given_retry": 0.42, "gate_passed": True}
+    for engine in ("post_confirmation_trend_engine", "unknown_or_transition"):
+        assert "retry_success_context" not in _envelope(sc, active_engine=engine)
+    # but it IS surfaced when the repair engine is active
+    assert "retry_success_context" in _envelope(sc, active_engine="repair_retry_hazard_engine")

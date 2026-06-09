@@ -253,10 +253,14 @@ def build_statistical_context_envelope(
         ],
     }
     # V13.4 Phase 8 (RS-4, consumer wiring): additive, gated retry-SUCCESS overlay — the success analog
-    # of retry_hazard_context. Attached only when success surfacing was enabled (surface_success=True)
-    # AND a gate-aware live success surface is available, so the default envelope is byte-identical
-    # (key absent). The empirical/occurrence probabilities above stay canonical.
-    if success_context and success_context.get("available"):
+    # of retry_hazard_context. Attached only when (a) the REPAIR engine is active (``hazard_active``) — a
+    # retry is genuinely pending — (b) success surfacing was enabled (surface_success=True), and (c) a
+    # gate-aware live success surface is available. The ``hazard_active`` guard mirrors the blend block
+    # above (research 02 Part A): for trend-mode / unknown_or_transition names the retry question is
+    # dormant, so the overlay — and its P(retry≤H)×P(success│retry) composite — must NOT be surfaced
+    # (it would multiply by a non-current occurrence). Default envelope stays byte-identical (key absent);
+    # the empirical/occurrence probabilities above stay canonical.
+    if hazard_active and success_context and success_context.get("available"):
         envelope["retry_success_context"] = dict(success_context)
     return make_json_safe(envelope)
 

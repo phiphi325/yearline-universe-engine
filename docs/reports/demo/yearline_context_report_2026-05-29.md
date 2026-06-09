@@ -28,14 +28,16 @@ The 9-name universe split into **three regimes** on 2026-05-29:
 `P(success │ retry) ≈ 0.14`. The composite **`P(successful reclaim ≤ 40d) ≈ 0.12`** makes the bottleneck
 explicit: *touching* isn't the hard part, *holding* is.
 
-**Cross-sectional success ranking** (gated `P(success │ retry)`, the order is the gate-validated signal):
-**NVDA 0.29 > XLK 0.25 ≈ QQQ 0.25 > AAPL 0.20 ≈ AMZN 0.20 > GOOGL 0.18 > META 0.15 > MSFT 0.14** (IGV: not
-available). All sit at/below the ~0.35 historical base rate — the expected footprint of a
-shrinkage-calibrated blend (trust the **ordering**; size gently on the **level** — see §6).
+**Surfaced success overlay** (only where a retry is genuinely pending — i.e. the repair engine is active):
+**MSFT 0.14** and **META 0.15** `P(success │ retry)`, both gate-passing, both at/below the ~0.35 base rate
+(the shrinkage-calibrated footprint — trust the **ordering**, size gently on the **level**; see §6). The
+trend-mode names' success probabilities are **withheld** (no pending retry — see §5 / §6.1); IGV is
+repair-mode but its success surface is unavailable (§6.3).
 
-**Two honest gaps surfaced by this run** (details in §6): (a) the success **composite** is being surfaced
-for **trend-mode** names even though their occurrence question is dormant — read those composites as N/A;
-(b) **IGV** has no success surface at all.
+**Two findings from this run** (details in §6): (a) **[fixed]** the success **composite** was being
+surfaced for **trend-mode / `unknown_or_transition`** names even though their occurrence question is
+dormant — the engine now **gates the overlay on the repair engine being active**, so those composites are
+correctly withheld; (b) **[open]** **IGV** has no success surface at all (a live-transition coverage gap).
 
 ---
 
@@ -62,15 +64,18 @@ otherwise it is withheld (diagnostic). Horizons reported: **10 / 20 / 40 / 60** 
 | **MSFT** | mega_cap_software_like | **Repair** | **−3.0%** | 23.4% | **0.89** (blend) | 0.137 | ✅ | **0.122** |
 | **META** | mega_cap_software_like | **Repair** | −6.4% | 11.8% | **0.77** (blend) | 0.155 | ✅ | **0.119** |
 | **IGV** | etf_context | **Repair** | −5.1% | 29.0% | 0.84 (empirical) | — | — | — |
-| AAPL | mega_cap_software_like | Trend (overextended) | +24.0% | 4.4% | — (dormant) | 0.204 | ✅ | 0.183 ⚠️ |
-| AMZN | mega_cap_software_like | Trend (healthy) | +18.1% | 0.7% | — (dormant) | 0.198 | ✅ | 0.168 ⚠️ |
-| NVDA | ai_accelerator | Trend (pullback) | +15.8% | 4.2% | — (dormant) | **0.289** | ✅ | 0.281 ⚠️ |
-| QQQ | etf_context | Trend (overextended) | +22.4% | 1.0% | — (dormant) | 0.249 | ✅ | 0.229 ⚠️ |
-| XLK | etf_context | Trend (overextended) | +35.2% | 1.4% | — (dormant) | 0.251 | ✅ | 0.240 ⚠️ |
-| GOOGL | mega_cap_software_like | Transitional | +37.8% | 6.6% | — (dormant) | 0.176 | ✅ | 0.151 ⚠️ |
+| AAPL | mega_cap_software_like | Trend (overextended) | +24.0% | 4.4% | — (dormant) | — (withheld) | — | — (withheld) |
+| AMZN | mega_cap_software_like | Trend (healthy) | +18.1% | 0.7% | — (dormant) | — (withheld) | — | — (withheld) |
+| NVDA | ai_accelerator | Trend (pullback) | +15.8% | 4.2% | — (dormant) | — (withheld) | — | — (withheld) |
+| QQQ | etf_context | Trend (overextended) | +22.4% | 1.0% | — (dormant) | — (withheld) | — | — (withheld) |
+| XLK | etf_context | Trend (overextended) | +35.2% | 1.4% | — (dormant) | — (withheld) | — | — (withheld) |
+| GOOGL | mega_cap_software_like | Transitional | +37.8% | 6.6% | — (dormant) | — (withheld) | — | — (withheld) |
 
-⚠️ = composite surfaced but the **occurrence question is dormant** for this name (it's above its yearline);
-treat the trend-row composites as **not applicable** for a point-in-time retry decision (see §6.1).
+**"withheld"** = the **retry-success overlay is not surfaced** for names where the repair engine is not
+active (trend-mode / `unknown_or_transition`) — there is no pending retry to condition on. This is the
+**fixed** behavior (see §6.1): the engine now gates `retry_success_context` on the repair engine being
+active, so no composite is built off a non-current occurrence. Only the repair-mode names (MSFT, META)
+surface a success probability + composite; IGV is repair-mode but its success surface is unavailable (§6.3).
 
 ---
 
@@ -114,39 +119,39 @@ pending and the full occurrence → success → composite chain applies.
 AAPL, AMZN, NVDA, QQQ, XLK are all comfortably **above** their yearline (+16% to +35%) in
 post-confirmation uptrends; GOOGL (+37.8%) is in a transitional state. For all of these the engine
 correctly reports the retry-occurrence question as **dormant** (`retry_hazard_context.active = false`,
-`P(retry≤H) = None`) — there is no pending yearline touch to estimate.
+`P(retry≤H) = None`) — there is no pending yearline touch to estimate. **The engine therefore withholds the
+entire `retry_success_context` overlay for these names** (the §6.1 fix): a success probability conditioned
+on a retry, and a composite multiplying it by a (non-existent) occurrence, would both be misleading.
 
-| Ticker | Trend state | Dist. to MA250 | `P(success│retry)` (conditional) |
-|---|---|---:|---:|
-| NVDA | pullback_but_intact | +15.8% | **0.289** |
-| XLK | overextended_trend | +35.2% | 0.251 |
-| QQQ | overextended_trend | +22.4% | 0.249 |
-| AAPL | overextended_trend | +24.0% | 0.204 |
-| AMZN | healthy_trend | +18.1% | 0.198 |
-| GOOGL | unknown_or_transition | +37.8% | 0.176 |
+For these names the relevant surface is the **post-confirmation trend engine** (`trend_quality_score`,
+`overextension_score`, etc. — though those scores have their own known weaknesses; see
+`docs/research/03/04` and the Track D plan `planner/05_trend_outlook_plan.md`).
 
-The `P(success│retry)` values here are best read as a **hypothetical conditional** — "*if* this name were
-to fall back and attempt to reclaim its yearline, the model+history suggest this hold-probability." They
-should **not** be paired with a live occurrence probability (there isn't one), and the composites the run
-emitted for these rows are an artifact to be withheld — see §6.1.
+*Diagnostic only (computed internally, **not** surfaced): the conditional `P(success│retry)` for these
+states ranged NVDA 0.29 > XLK 0.25 ≈ QQQ 0.25 > AAPL 0.20 ≈ AMZN 0.20 > GOOGL 0.18 — a "**if** this name
+fell back and re-attempted, the hold-probability" hypothetical. Withheld because no retry is pending.*
 
 ---
 
 ## 6. Trust, gates, and limitations
 
-### 6.1 ⚠️ The success **composite** is surfaced for trend-mode names (a wiring gap to tighten)
-For the five trend names + GOOGL, `retry_hazard_context` correctly shows `active: false` and no
-`P(retry≤H)` — yet `retry_success_context.successful_reclaim_within_horizon` still surfaced a composite
-(e.g. **AAPL**: `p_retry_within_h: 0.896`, `occurrence_gate_passed: true`, `surfaced_probability: 0.183`).
-That occurrence factor (0.896) is **not** AAPL's current chance of touching its yearline (it's +24% above
-it) — it's the pooled blend scored on a **non-current** live-transition state.
+### 6.1 ✅ [FIXED] The success overlay is now gated on the repair engine being active
+**Originally surfaced by this run (the bug):** for the five trend names + GOOGL, `retry_hazard_context`
+correctly showed `active: false` and no `P(retry≤H)` — yet `retry_success_context` still surfaced a
+composite (e.g. **AAPL**: `p_retry_within_h: 0.896`, `occurrence_gate_passed: true`,
+`surfaced_probability: 0.183`). That occurrence factor (0.896) was **not** AAPL's current chance of touching
+its yearline (it's +24% above it) — it was the pooled blend scored on a **non-current** live-transition state.
 
-**Root cause:** the RS-4 success overlay gates on *"the hazard layer ran"* (`hazard_context.available`),
-whereas the occurrence **blend block** gates on *"the repair engine is active"* (`hazard_active`). The two
-should match. **Recommended fix (one line, not applied in this report):** gate the success overlay — and
-especially its composite — on the **repair engine being active** (or `repair_retry_context.active`), so
-trend-mode names surface at most a clearly-labelled *hypothetical* `P(success│retry)` and **withhold the
-composite**. Until then, **read every ⚠️ composite in §3/§5 as N/A.**
+**Root cause:** the RS-4 success overlay gated on *"the hazard layer ran"* (`hazard_context.available`),
+whereas the occurrence **blend block** gates on *"the repair engine is active"* (`hazard_active`) — the two
+disagreed.
+
+**Fix (applied):** `context_export` now attaches `retry_success_context` **only when `hazard_active`** (the
+repair engine is the active one), exactly mirroring the blend block. For trend-mode / `unknown_or_transition`
+names the overlay — and its composite — is **withheld entirely** (no phantom-occurrence number). Validated
+by re-running this report: the trend rows in §3 now read "withheld," and only the repair-mode names (MSFT,
+META) surface a success probability + composite. (Plan of record: `docs/research/02_…` Part A; test:
+`tests/test_success_surface.py::test_success_overlay_withheld_when_repair_engine_inactive`.)
 
 ### 6.2 Occurrence calibration: the blend is doing the work
 For the repair names, the **isotonic-only** occurrence calibration did **not** pass its 40d gate on this
