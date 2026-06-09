@@ -13,8 +13,8 @@ of work. Analysis = *why/what*; planner = *how/when, PR by PR*.
 
 | Track | Scope | Priority | Phase folder | Lives in |
 |---|---|---|---|---|
-| **A — Retry-success** | RS-1…RS-4: make `P(success │ retry)` trustworthy (today a gated-off prototype) | **HIGH (now)** | **`phase_08/`** | this repo |
-| **B — option-mgmt integration** | V13.8 adapter (this repo) + OM-Y0…Y5 (option-mgmt-2026) | **HIGH (now)** | **`phase_09/`** (yearline side) | this repo + `option-mgmt-2026` |
+| **A — Retry-success** | RS-1…RS-4: make `P(success │ retry)` trustworthy | ✅ **DELIVERED** (`phase_08/`) | **`phase_08/`** | this repo |
+| **B — option-mgmt integration** | V13.8 adapter (this repo) + OM-Y0…Y5 (option-mgmt-2026) | **HIGH (next)** — not started | **`phase_09/`** (yearline side) | this repo + `option-mgmt-2026` |
 | **C — Multi-sector** | MS-0…MS-5: widen the universe | **LOWER / deferred** (gated on a data upload) | **`phase_10/`** | this repo |
 | **D — Trend outlook** | TO-0…TO-4: make the post-confirmation **trend engine** discriminating + gated (the trend analog of Track A) | **MEDIUM** (TO-0/TO-1 ✅ delivered; TO-2…TO-4 next) | **`phase_11/`** | this repo |
 
@@ -35,7 +35,7 @@ snapshot subfolder) — exactly like `phase_01/…phase_07/`. **New phase-specif
 
 | Track | Phase folder | What goes there | Created |
 |---|---|---|---|
-| A — retry-success | **`phase_08/`** | RS-1…RS-4 as sub-PRs within the phase (the way Phase 7 held PR-A…E); `README.md` + `artifacts/` (head-to-head vs base rate, calibration, gate) | when RS-1 starts |
+| A — retry-success | **`phase_08/`** | RS-1…RS-4 as sub-PRs within the phase (the way Phase 7 held PR-A…E); `README.md` + `artifacts/` (head-to-head vs base rate, calibration, gate) + `reliability/` | ✅ **DELIVERED** (RS-1…RS-4 + reliability) |
 | B — option-mgmt (yearline side) | **`phase_09/`** | the V13.8 adapter + the `YearlineContext` contract + schema + fixtures + the cross-repo contract test; `README.md` + `artifacts/` | when V13.8 starts |
 | C — multi-sector | **`phase_10/`** | MS-0…MS-5 (deferred, data-gated) | when MS-0 data lands |
 | D — trend outlook | **`phase_11/`** | TO-0…TO-4 as sub-PRs (coverage/hygiene → score resolution → regime prob → forward label+validation → calibration+gate+`trend_outlook_context`); `README.md` + `artifacts/` | **TO-0/TO-1 delivered** (TO-2…TO-4 next) |
@@ -49,6 +49,11 @@ Notes:
   source analysis doc (`docs/research/`, `docs/option-mgmt-integration/`, `docs/multi-sector/`).
 
 ## Sequencing (how the two priority tracks interleave)
+
+> **Current state (2026-06-09):** **Track A (Phase 8) is DELIVERED** (RS-1…RS-4 + reliability + the Part A
+> composite-gating hardening). **Track D (Phase 11)** TO-0/TO-1 are delivered; TO-2…TO-4 remain. **Track B
+> (Phase 9 / OM-Y\*) has not started** and is the main open priority; **Track C** stays deferred. The
+> original A↔B interleaving below is retained as design rationale for the (still-pending) Track B build.
 
 These two tracks are **mostly parallel** but share one important coupling:
 
@@ -70,8 +75,8 @@ These two tracks are **mostly parallel** but share one important coupling:
    calibration/gate) are a medium-priority arc that reuses Track A's gate/calibration primitives and is
    data-gated like Track C.
 
-Suggested first three PRs: **RS-1**, **V13.8 adapter**, **OM-Y0 (ADR draft)** — in that order or in
-parallel.
+Suggested **next** PRs (Track A done): **V13.8 adapter** + **OM-Y0 (ADR draft)** to start Track B, and
+**TO-2** (regime probability) to continue Track D — in parallel.
 
 ## Cross-cutting acceptance bar (applies to every PR in every track)
 
@@ -86,21 +91,24 @@ parallel.
 - **Data is the lever**: where a gate fails for lack of sample, the deliverable is the *validated method*
   + an honest "needs more data," not a forced number.
 
-## Status (all planned)
+## Status
+
+**Track A (Phase 8) ✅ DELIVERED · Track D (Phase 11) TO-0/TO-1 ✅, TO-2…TO-4 next · Track B (Phase 9) next
+· Track C (Phase 10) deferred.**
 
 | Phase | Item | Status |
 |---|---|---|
-| `phase_08` | RS-1 success labels + empirical baseline | ☐ |
-| `phase_08` | RS-2 success classifier + LOTO eval | ☐ |
-| `phase_08` | RS-3 calibration + gate + blend | ☐ |
-| `phase_08` | RS-4 gated `retry_success_context` + composite | ☐ |
-| `phase_09` | V13.8 adapter (YearlineContext export) | ☐ |
-| `option-mgmt-2026` | OM-Y0 enhancement + ADR | ☐ |
-| `option-mgmt-2026` | OM-Y1…Y4 contract → ingest → panel → gated consumption | ☐ |
-| `option-mgmt-2026` | OM-Y5 stretch | ☐ |
+| `phase_08` | RS-1 success labels + empirical baseline | ✅ delivered (PR #13) |
+| `phase_08` | RS-2 success classifier + LOTO eval | ✅ delivered (PR #14) |
+| `phase_08` | RS-3 calibration + gate + blend (+ reliability diagnostic) | ✅ delivered (PR #16) |
+| `phase_08` | RS-4 gated `retry_success_context` + composite | ✅ delivered (PR #17); composite gating hardened in Part A (PR #22) |
+| `phase_09` | V13.8 adapter (YearlineContext export) | ☐ not started (Track B, next) |
+| `option-mgmt-2026` | OM-Y0 enhancement + ADR | ☐ not started |
+| `option-mgmt-2026` | OM-Y1…Y4 contract → ingest → panel → gated consumption | ☐ not started |
+| `option-mgmt-2026` | OM-Y5 stretch | ☐ not started |
 | `phase_10` | MS-0 data & taxonomy (deferred) | ☐ (blocked on data) |
-| `phase_11` | TO-0 trend handoff coverage + hygiene | ✅ (delivered; `phase_11/`) |
-| `phase_11` | TO-1 score resolution (de-saturated + de-collinearized indicators) | ✅ (delivered; `phase_11/`) |
-| `phase_11` | TO-2 regime probability (HMM / changepoint) | ☐ |
+| `phase_11` | TO-0 trend handoff coverage + hygiene | ✅ delivered (PR #23) |
+| `phase_11` | TO-1 score resolution (de-saturated + de-collinearized indicators) | ✅ delivered (PR #23) |
+| `phase_11` | TO-2 regime probability (HMM / changepoint) | ☐ next |
 | `phase_11` | TO-3 forward trend label + LOTO validation | ☐ |
 | `phase_11` | TO-4 calibration + gate (resolution floor) + gated `trend_outlook_context` | ☐ |
