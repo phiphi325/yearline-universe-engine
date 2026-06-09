@@ -1,0 +1,10 @@
+ticker,n_strict_src,n_loose_src,n_canonical,strict_q,loose_only,merged_strict+loose,outcome_disagree,monotonic_time,dup_loc,date_loc_map_ok,loc_in_range,min_strict_gap,rounds_monotonic,attempt_reset_ok,span_warnings,OK
+MSFT,24,35,40,24,16,19,0,True,0,True,True,5,True,True,0,True
+AAPL,19,24,25,19,6,18,0,True,0,True,True,5,True,True,0,True
+GOOGL,24,32,37,24,13,19,0,True,0,True,True,6,True,True,0,True
+AMZN,29,34,40,29,11,23,0,True,0,True,True,6,True,True,0,True
+META,18,24,27,18,9,15,0,True,0,True,True,7,True,True,0,True
+NVDA,16,22,24,16,8,14,0,True,0,True,True,5,True,True,0,True
+QQQ,20,22,27,20,7,15,0,True,0,True,True,9,True,True,0,True
+XLK,18,24,26,18,8,16,1,True,0,True,True,7,True,True,0,True
+IGV,16,18,20,16,4,14,0,True,0,True,True,19,True,True,0,True
