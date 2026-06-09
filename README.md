@@ -25,11 +25,12 @@ V12 is the frozen research proof / reference implementation
 is ported faithfully from V12, but every module is ticker-parametrized — no hardcoded
 MSFT logic (an AST test enforces it).
 
-## Status — the V13.3 roadmap is complete (Phases 1–7)
+## Status — Phases 1–8 delivered; Phase 11 (trend outlook) in progress
 
 The forward "days-to-touch" probability is now a credible, **calibrated, trust-gated**
-quantity at ≤40 days on current, pooled data — and Phase 7 adds a learned **discriminative
-overlay** on top:
+quantity at ≤40 days on current, pooled data; Phase 7 adds a learned **discriminative
+overlay**; Phase 8 makes retry **success** trustworthy; Phase 11 is upgrading the
+post-confirmation **trend** engine:
 
 | Phase | Delivered | Headline |
 |---|---|---|
@@ -40,8 +41,11 @@ overlay** on top:
 | **5 — pooling + data freshness** | `pool_hazard` over the universe; cache refreshed to 9 current tickers | **gate PASSES at 10/20/40d** (AUC 0.74–0.82, MACE 0.04–0.08) |
 | **6 — honest gate** | gate on an out-of-fold (purged) isotonic MACE, not the in-sample-optimistic value | tightens 40d; 60d shown sample/regime-limited (honest abstention) |
 | **7 — discrimination** | path + cross-sectional features → a direct horizon **classifier**, blended with the empirical estimator; **opt-in additive gated overlay** (`surface_blend`) | unseen-name (leave-one-ticker-out) **blend AUC 0.79–0.84**, gate passes at all 4 horizons |
+| **8 — retry-success (RS-1…RS-4)** | success labels + empirical baseline → classifier → calibrate+gate+blend → **opt-in gated `retry_success_context`** (`surface_success`) + the `P(reclaim≤H)=P(retry≤H)×P(success│retry)` composite | leave-one-ticker-out **blend AUC 0.70 / MACE 0.036** (gate passes); a reliability diagnostic shows ~87% of the calibration is base-rate shrinkage |
+| **11 — trend outlook (TO-0/TO-1)** | trend-engine handoff coverage + **de-saturated / de-collinearized** trend scores (efficiency ratio, ADX, R², variance ratio) | `trend_quality` spreads **0.38–0.76** (was ≈1.0 saturated); orphaned names now route to the trend engine; TO-2…TO-4 remain |
 
-See `docs/phased_design/` for each phase's spec, results, and artifacts.
+See `docs/phased_design/` for each phase's spec, results, and artifacts; `docs/phased_design/planner/`
+for the forward roadmap (Tracks A–D).
 
 ## Architecture
 
@@ -203,6 +207,8 @@ JSON schema: `exports/reports/statistical_context_schema.json`.
 | V13.5 | universe context bundle export | ✅ |
 | V13.7 | calibration + gating | ✅ (Phase 4, opt-in `calibrate`) |
 | **V13.9** | discriminative overlay — direct horizon classifier ↔ empirical blend | ✅ (Phase 7, opt-in `surface_blend`) |
+| **Phase 8** | retry-**success** overlay — success classifier ↔ empirical blend + `P(reclaim≤H)` composite, gated | ✅ (opt-in `surface_success`) |
+| **Phase 11** | trend-outlook — handoff coverage + de-saturated/de-collinearized trend scores (TO-0/TO-1) | ◐ in progress (TO-2…TO-4 remain) |
 | V13.6 / V13.8 | universe replay sweep, repo-integration adapter | planned |
 
 ## Tests

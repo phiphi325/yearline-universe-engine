@@ -6,7 +6,11 @@
 `retry_success_context` on `hazard_active` (the repair engine being active), so trend-mode /
 `unknown_or_transition` names no longer surface a composite off a non-current occurrence; test
 `tests/test_success_surface.py::test_success_overlay_withheld_when_repair_engine_inactive`; validated by
-re-running `docs/reports/demo/`. **Part B — open** (IGV coverage; lower priority). Educational research only.
+re-running `docs/reports/demo/`. **Part B — B.4 labelling fix IMPLEMENTED (2026-06-09):** the blend/success
+overlays now record the *true* skip reason (`no_live_hazard_layer_*` / `no_open_live_transition_to_score`)
+instead of the misleading `..._not_requested_*` default; B.5.1 (surface the reason in the envelope) and
+B.5.2 (synthetic live transition for below-yearline-no-open-attempt regimes) remain deferred (lower
+priority). Educational research only.
 
 This note (a) lays out the plan to fix the **trend-mode composite gap** and (b) records the **root-cause
 investigation of the IGV coverage gap**. Both were found by running the engine point-in-time — neither is
