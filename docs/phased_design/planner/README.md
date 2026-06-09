@@ -16,6 +16,7 @@ of work. Analysis = *why/what*; planner = *how/when, PR by PR*.
 | **A — Retry-success** | RS-1…RS-4: make `P(success │ retry)` trustworthy (today a gated-off prototype) | **HIGH (now)** | **`phase_08/`** | this repo |
 | **B — option-mgmt integration** | V13.8 adapter (this repo) + OM-Y0…Y5 (option-mgmt-2026) | **HIGH (now)** | **`phase_09/`** (yearline side) | this repo + `option-mgmt-2026` |
 | **C — Multi-sector** | MS-0…MS-5: widen the universe | **LOWER / deferred** (gated on a data upload) | **`phase_10/`** | this repo |
+| **D — Trend outlook** | TO-0…TO-4: make the post-confirmation **trend engine** discriminating + gated (the trend analog of Track A) | **MEDIUM** (TO-0/TO-1 interleave now) | **`phase_11/`** | this repo |
 
 The detailed specs:
 
@@ -23,6 +24,7 @@ The detailed specs:
 - [`02_option_mgmt_integration_plan.md`](02_option_mgmt_integration_plan.md) — Track B (V13.8 adapter + OM-Y0…Y5).
 - [`03_multi_sector_plan.md`](03_multi_sector_plan.md) — Track C (MS-0…MS-5), condensed (deferred).
 - [`04_macro_factors_feature_analysis.md`](04_macro_factors_feature_analysis.md) — **cross-cutting analysis:** would macro factors (10yr rates, VIX, market breadth) improve accuracy? Short answer: causally plausible but **sample-starved** (macro features are market-level/temporally autocorrelated → effective sample = # regimes, not # attempts), they don't fix RS-2's *calibration* gap (RS-3 does), and they're a **data-unlocked** lever to validate **walk-forward** — not now.
+- [`05_trend_outlook_plan.md`](05_trend_outlook_plan.md) — Track D (TO-0…TO-4), spec-grade. Brings the trend engine up to the repair side's discipline (resolution → validation → calibration → gated surface), grounded in `docs/research/03` (V12/V13 review) + `docs/research/04` (SOTA: TSMOM/vol-scaling, HMM/changepoint regimes, ADX⊗Hurst, proper-scoring calibration). Surfaces a gated `trend_outlook_context` only if it clears AUC/MACE/**resolution**/n.
 
 ## Phase folders — where the built work is recorded (`phase_08+`)
 
@@ -36,6 +38,7 @@ snapshot subfolder) — exactly like `phase_01/…phase_07/`. **New phase-specif
 | A — retry-success | **`phase_08/`** | RS-1…RS-4 as sub-PRs within the phase (the way Phase 7 held PR-A…E); `README.md` + `artifacts/` (head-to-head vs base rate, calibration, gate) | when RS-1 starts |
 | B — option-mgmt (yearline side) | **`phase_09/`** | the V13.8 adapter + the `YearlineContext` contract + schema + fixtures + the cross-repo contract test; `README.md` + `artifacts/` | when V13.8 starts |
 | C — multi-sector | **`phase_10/`** | MS-0…MS-5 (deferred, data-gated) | when MS-0 data lands |
+| D — trend outlook | **`phase_11/`** | TO-0…TO-4 as sub-PRs (coverage/hygiene → score resolution → regime prob → forward label+validation → calibration+gate+`trend_outlook_context`); `README.md` + `artifacts/` | when TO-0 starts |
 
 Notes:
 - **`phase_08` and `phase_09` can be in flight in parallel** — the numbers are record IDs, not a strict
@@ -62,6 +65,10 @@ These two tracks are **mostly parallel** but share one important coupling:
    gated consumption) then proceed independently; **RS-4** (surfacing the success block) enriches what
    OM-Y3/Y4 consume.
 5. **Track C (MS-0)** is **deferred** until a multi-sector data upload exists; it does not block A or B.
+6. **Track D (TO-0/TO-1)** — the trend handoff-coverage + score-resolution quick wins — **interleave right
+   after Track A's Part A fix** (both touch the trend-mode path); TO-2…TO-4 (regime prob → forward label →
+   calibration/gate) are a medium-priority arc that reuses Track A's gate/calibration primitives and is
+   data-gated like Track C.
 
 Suggested first three PRs: **RS-1**, **V13.8 adapter**, **OM-Y0 (ADR draft)** — in that order or in
 parallel.
@@ -92,3 +99,8 @@ parallel.
 | `option-mgmt-2026` | OM-Y1…Y4 contract → ingest → panel → gated consumption | ☐ |
 | `option-mgmt-2026` | OM-Y5 stretch | ☐ |
 | `phase_10` | MS-0 data & taxonomy (deferred) | ☐ (blocked on data) |
+| `phase_11` | TO-0 trend handoff coverage + hygiene | ☐ |
+| `phase_11` | TO-1 score resolution (vol-normalized + cross-sectional; de-collinearize) | ☐ |
+| `phase_11` | TO-2 regime probability (HMM / changepoint) | ☐ |
+| `phase_11` | TO-3 forward trend label + LOTO validation | ☐ |
+| `phase_11` | TO-4 calibration + gate (resolution floor) + gated `trend_outlook_context` | ☐ |
