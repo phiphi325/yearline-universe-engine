@@ -209,7 +209,8 @@ JSON schema: `exports/reports/statistical_context_schema.json`.
 | **V13.9** | discriminative overlay — direct horizon classifier ↔ empirical blend | ✅ (Phase 7, opt-in `surface_blend`) |
 | **Phase 8** | retry-**success** overlay — success classifier ↔ empirical blend + `P(reclaim≤H)` composite, gated | ✅ (opt-in `surface_success`) |
 | **Phase 11** | trend-outlook — handoff coverage + de-saturated/de-collinearized trend scores (TO-0/TO-1) | ◐ in progress (TO-2…TO-4 remain) |
-| V13.6 / V13.8 | universe replay sweep, repo-integration adapter | planned |
+| **V13.8** | repo-integration adapter — gated `YearlineContext` export for `option-mgmt-2026` (Phase 9, yearline side) | ✅ (`to_yearline_context` + schema + fixtures; OM-Y\* next in `option-mgmt-2026`) |
+| V13.6 | universe replay sweep | planned |
 
 ## Tests
 

@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://option-mgmt-2026.local/schemas/yearline-context/v13_8.schema.json",
+  "title": "YearlineContext",
+  "type": "object",
+  "required": [
+    "as_of",
+    "ticker",
+    "schema_version",
+    "model_stack_version",
+    "adapter_version",
+    "repair_active",
+    "p_retry",
+    "p_retry_basis",
+    "gate_passed",
+    "is_stale",
+    "must_not_auto_execute"
+  ],
+  "properties": {
+    "as_of": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "ticker": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "schema_version": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "model_stack_version": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "adapter_version": {
+      "type": "string"
+    },
+    "repair_active": {
+      "type": "boolean"
+    },
+    "distance_to_ma250_pct": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "required_rebound_to_ma250_pct": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "post_confirmation_trend_state": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "p_retry": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number"
+      }
+    },
+    "p_retry_basis": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "empirical",
+        "blend",
+        null
+      ]
+    },
+    "gate_passed": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "boolean"
+      }
+    },
+    "days_to_touch_central": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "days_to_touch_low": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "days_to_touch_high": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "p_success": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "success_gate_passed": {
+      "type": "boolean"
+    },
+    "p_successful_reclaim": {
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "number",
+          "null"
+        ]
+      }
+    },
+    "reference_scope": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "is_stale": {
+      "type": "boolean"
+    },
+    "must_not_auto_execute": {
+      "const": true
+    }
+  },
+  "additionalProperties": false
+}
