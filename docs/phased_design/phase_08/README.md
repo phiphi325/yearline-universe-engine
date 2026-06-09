@@ -73,6 +73,18 @@ establishes the **bar** — **AUC ≈ 0.49, Brier ≈ 0.228** — that RS-2's ri
 No existing output changes (capability before consumer); full per-file suite green;
 no-hardcoded-ticker guard holds.
 
+### Validation — event-detection alignment
+
+Because RS-1's labels derive from the strict/loose attempt detector → canonical events, an audit
+confirms those attempts are **properly aligned and time-correctly processed per ticker**:
+[`event_detection_alignment_audit.md`](event_detection_alignment_audit.md). Across all 9 tickers:
+chronological integrity is exact (monotonic, no duplicate bars, correct `date ↔ trading_loc` mapping,
+no cross-ticker mixing), strict attempts are preserved 1:1 (184→184 strict-quality anchors), loose hits
+merge correctly within the 2-day window (0 span warnings), rounds/attempts reset correctly after a
+success, and strict/loose disagree on outcome in only 1 of 153 merged clusters. One non-blocking
+hardening note (an unenforced single-ticker precondition in `build_canonical_events`) is recorded there.
+Artifacts: `artifacts/event_detection_alignment_audit.{csv,json}`.
+
 ## 5. Reproduce
 
 ```python
