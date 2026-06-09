@@ -22,6 +22,7 @@ The detailed specs:
 - [`01_retry_success_plan.md`](01_retry_success_plan.md) — Track A (RS-1…RS-4), spec-grade.
 - [`02_option_mgmt_integration_plan.md`](02_option_mgmt_integration_plan.md) — Track B (V13.8 adapter + OM-Y0…Y5).
 - [`03_multi_sector_plan.md`](03_multi_sector_plan.md) — Track C (MS-0…MS-5), condensed (deferred).
+- [`04_macro_factors_feature_analysis.md`](04_macro_factors_feature_analysis.md) — **cross-cutting analysis:** would macro factors (10yr rates, VIX, market breadth) improve accuracy? Short answer: causally plausible but **sample-starved** (macro features are market-level/temporally autocorrelated → effective sample = # regimes, not # attempts), they don't fix RS-2's *calibration* gap (RS-3 does), and they're a **data-unlocked** lever to validate **walk-forward** — not now.
 
 ## Phase folders — where the built work is recorded (`phase_08+`)
 
