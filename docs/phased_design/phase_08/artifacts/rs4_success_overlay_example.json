@@ -1,0 +1,74 @@
+{
+  "ticker": "MSFT",
+  "as_of": null,
+  "retry_success_context": {
+    "available": true,
+    "schema": "v13_phase8_retry_success_overlay",
+    "policy": "gated_success_overlay_empirical_and_occurrence_remain_canonical",
+    "p_success_given_retry": 0.1736,
+    "classifier_probability": 0.0,
+    "empirical_probability": 0.3472,
+    "empirical_reference_scope": "group_transition",
+    "empirical_reference_n": 26,
+    "blend_weight_classifier": 0.5,
+    "base_rate": 0.3519,
+    "gate": {
+      "passed": true,
+      "auc": 0.7017543859649122,
+      "mace": 0.03556755582642802,
+      "n": 162,
+      "fail_reasons": []
+    },
+    "gate_passed": true,
+    "surfaced_probability_is_calibrated": true,
+    "successful_reclaim_within_horizon": {
+      "10": {
+        "p_retry_within_h": 0.2177,
+        "occurrence_surface": "phase7_blend",
+        "p_success_given_retry": 0.1736,
+        "p_successful_reclaim_within_h": 0.0378,
+        "occurrence_gate_passed": true,
+        "success_gate_passed": true,
+        "both_gates_passed": true,
+        "surfaced_probability": 0.0378
+      },
+      "20": {
+        "p_retry_within_h": 0.3065,
+        "occurrence_surface": "phase7_blend",
+        "p_success_given_retry": 0.1736,
+        "p_successful_reclaim_within_h": 0.0532,
+        "occurrence_gate_passed": true,
+        "success_gate_passed": true,
+        "both_gates_passed": true,
+        "surfaced_probability": 0.0532
+      },
+      "40": {
+        "p_retry_within_h": 0.5476,
+        "occurrence_surface": "phase7_blend",
+        "p_success_given_retry": 0.1736,
+        "p_successful_reclaim_within_h": 0.0951,
+        "occurrence_gate_passed": true,
+        "success_gate_passed": true,
+        "both_gates_passed": true,
+        "surfaced_probability": 0.0951
+      },
+      "60": {
+        "p_retry_within_h": 0.6957,
+        "occurrence_surface": "phase7_blend",
+        "p_success_given_retry": 0.1736,
+        "p_successful_reclaim_within_h": 0.1208,
+        "occurrence_gate_passed": true,
+        "success_gate_passed": true,
+        "both_gates_passed": true,
+        "surfaced_probability": 0.1208
+      }
+    },
+    "interpretation": "P(success \u2502 retry) is the gated blend of the RS-2 success classifier (readiness + cross-sectional features) with the RS-1 empirical success estimator \u2014 given an attempt at the yearline, will it reclaim and hold? It is a single probability (not horizon-indexed). The composite multiplies it by the gate-verified occurrence P(retry\u2264H) \u2014 preferring the Phase-7 classifier\u2194empirical blend where it passes (it calibrates long horizons the isotonic-only surface cannot), else the canonical empirical estimator (see each horizon's occurrence_surface). A horizon's composite is surfaced only where BOTH the occurrence gate and the success gate pass.",
+    "caveats": [
+      "Thin sample (low-hundreds attempts); the gate PASS is high-variance \u2014 re-validate walk-forward.",
+      "The blend's calibration is largely base-rate shrinkage (see reliability/); trust the ranking, size gently on the level."
+    ],
+    "disclaimer": "Educational research only. Not financial advice. Not a calibrated trading signal.",
+    "must_not_auto_execute": true
+  }
+}

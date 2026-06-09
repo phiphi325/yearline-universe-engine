@@ -1,0 +1,10 @@
+ticker,available,p_success_given_retry,success_gate_passed,composite_40d,surfaced_40d,surface_40d,surfaced_60d,surface_60d,warning
+MSFT,True,0.1736,True,0.0951,0.0951,phase7_blend,0.1208,phase7_blend,
+AAPL,True,0.2212,True,0.1759,0.1759,phase7_blend,0.1865,phase7_blend,
+GOOGL,True,0.1757,True,0.1355,0.1355,phase7_blend,0.1479,phase7_blend,
+AMZN,True,0.1876,True,0.1386,0.1386,phase7_blend,0.1519,phase7_blend,
+META,True,0.153,True,0.0765,0.0765,phase7_blend,0.1174,phase7_blend,
+NVDA,True,0.3245,True,0.3101,0.3101,phase7_blend,0.3143,phase7_blend,
+QQQ,True,0.2159,True,0.1814,0.1814,phase7_blend,0.1916,phase7_blend,
+XLK,True,0.2179,True,0.1988,0.1988,phase7_blend,0.2061,phase7_blend,
+IGV,True,0.2127,True,0.1821,0.1821,phase7_blend,0.1961,phase7_blend,

@@ -85,6 +85,8 @@ def run_ticker_pipeline(
     calibration_model: Mapping[str, Any] | None = None,
     surface_blend: bool = False,
     blend_model: Mapping[str, Any] | None = None,
+    surface_success: bool = False,
+    success_model: Mapping[str, Any] | None = None,
     prebuilt_foundation: Mapping[str, Any] | None = None,
 ) -> TickerPipelineResult:
     """Run the full per-ticker statistical-context pipeline. Ticker-agnostic.
@@ -119,7 +121,8 @@ def run_ticker_pipeline(
         hz = run_hazard_layer(ticker, peer_group, price_df, recovery, live, study,
                               pooled_data=pooled_data, fit_ml_models=fit_ml_models,
                               calibrate=calibrate, calibration_model=calibration_model,
-                              surface_blend=surface_blend, blend_model=blend_model)
+                              surface_blend=surface_blend, blend_model=blend_model,
+                              surface_success=surface_success, success_model=success_model)
         hazard_fit = hz["hazard_fit"]
         hazard_history = hz["hazard_history"]
         hazard_context = hz["hazard_context"]
@@ -193,7 +196,12 @@ def run_ticker_pipeline(
         envelope = build_statistical_context_envelope(
             ticker, sector, peer_group, semantic_card, latest_row,
             calibration_summary=calibration_summary, source_info=source_info,
-            retry_timing_context=retry_timing, blend_context=hz.get("blend_context"),
+            retry_timing_context=retry_timing,
+            # The blend overlay BLOCK is attached only when explicitly surfaced; when only
+            # surface_success is on, the blend is still computed and used for the success composite's
+            # occurrence gate, but not attached here (keeps the hazard block byte-identical).
+            blend_context=(hz.get("blend_context") if surface_blend else None),
+            success_context=hz.get("success_context"),
         )
 
         manifest = {
@@ -261,6 +269,7 @@ def run_universe_pipeline(
     calibrate: bool = False,
     pool_hazard: bool = False,
     surface_blend: bool = False,
+    surface_success: bool = False,
 ) -> UniversePipelineResult:
     """V13.2 batch runner: run every configured ticker, isolate failures, emit a manifest + bundle.
 
@@ -310,14 +319,24 @@ def run_universe_pipeline(
 
     # V13.3 Phase 7 (consumer wiring): build the compute-once blend model ONCE (universe-level,
     # live-ticker-independent), then reuse per ticker — opt-in via surface_blend, pooled-only.
+    # Built when EITHER overlay is on: surface_blend surfaces the blend block; surface_success needs the
+    # blend as the consumer-grade occurrence surface for its composite gate (so long horizons that the
+    # isotonic-only surface can't calibrate, e.g. 60d, are still gate-verified via the blend).
     blend_model = None
-    if pool_hazard and surface_blend and pooled_data:
+    if pool_hazard and (surface_blend or surface_success) and pooled_data:
         from .blend_surface import build_blend_model
         blend_model = build_blend_model(pooled_data, universe_config.study_for(tcs[0]))
 
+    # V13.4 Phase 8 (RS-4): build the compute-once retry-success surface model ONCE (universe-level,
+    # live-ticker-independent), then reuse per ticker — opt-in via surface_success, pooled-only.
+    success_model = None
+    if pool_hazard and surface_success and pooled_data:
+        from .success_surface import build_success_surface_model
+        success_model = build_success_surface_model(pooled_data, universe_config.study_for(tcs[0]))
+
     base = dict(cache_dir=cache_dir, provider=provider, incremental=incremental,
                 state_dir=state_dir, fit_ml_models=fit_ml_models, calibrate=calibrate,
-                surface_blend=surface_blend)
+                surface_blend=surface_blend, surface_success=surface_success)
 
     def _kw(tc: TickerConfig) -> dict:
         k = dict(base)
@@ -328,6 +347,8 @@ def run_universe_pipeline(
                 k["calibration_model"] = calibration_model
             if blend_model is not None:
                 k["blend_model"] = blend_model
+            if success_model is not None:
+                k["success_model"] = success_model
         return k
 
     if n_jobs == 1 or len(tcs) <= 1:

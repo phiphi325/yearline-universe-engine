@@ -94,6 +94,12 @@ from .success_reliability import (
     success_reliability_diagnostic,
     build_success_reliability_diagnostic,
 )
+from .success_surface import (
+    build_success_surface_model,
+    apply_success_live,
+    build_retry_success_context,
+    SUCCESS_SURFACE_VERSION,
+)
 from .validation import (
     validate_ticker_sanity,
     validate_reference_parity,
@@ -162,6 +168,10 @@ __all__ = [
     "brier_decomposition",
     "success_reliability_diagnostic",
     "build_success_reliability_diagnostic",
+    "build_success_surface_model",
+    "apply_success_live",
+    "build_retry_success_context",
+    "SUCCESS_SURFACE_VERSION",
     "validate_ticker_sanity",
     "validate_reference_parity",
     "ml_feature_leakage_audit",
