@@ -79,7 +79,7 @@
       "peer_group": "mega_cap_software_like",
       "as_of": "2026-05-29",
       "data_as_of": "2026-05-29",
-      "active_engine": "unknown_or_transition",
+      "active_engine": "post_confirmation_trend_engine",
       "mode_state": "transition_watch",
       "distance_to_ma250_pct": 37.775029915074334,
       "drawdown_so_far_pct": 6.612082260259166,
@@ -105,7 +105,7 @@
       "reclaim_40_surface": null,
       "reclaim_60": null,
       "reclaim_60_surface": null,
-      "trend_state": "pullback_but_intact"
+      "trend_state": "overextended_trend"
     },
     {
       "ticker": "AMZN",

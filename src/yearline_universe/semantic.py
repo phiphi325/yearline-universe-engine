@@ -49,6 +49,9 @@ _TREND_COLS = [
     "as_of_date", "post_confirmation_trend_state", "trend_quality_score",
     "pullback_quality_score", "overextension_score", "deterioration_risk_score",
     "drawdown_from_post_confirmation_peak_pct", "days_since_confirmation",
+    # NB: distance_to_ma250_pct is intentionally NOT merged here — the replay history already carries it
+    # (replay.py), and re-merging would collide (_x/_y suffix) and null out BOTH the repair and trend
+    # context distances. context_export reads the existing column for trend_context (TO-0).
 ]
 
 
@@ -68,14 +71,8 @@ def build_semantic_history(replay_history: pd.DataFrame, trend_history: pd.DataF
     h["as_of_date"] = pd.to_datetime(h["as_of_date"])
 
     h["active_engine"] = h["mode_state_replay"].apply(assign_active_engine)
-    h["hazard_semantics"] = np.where(
-        h["active_engine"] == "repair_retry_hazard_engine",
-        "active_repair_retry_metric", "not_applicable_post_confirmation_handoff",
-    )
-    for col in _HAZARD_COLS:
-        if col in h.columns:
-            h[f"{col}_gated"] = np.where(h["active_engine"] == "repair_retry_hazard_engine", h[col], np.nan)
 
+    # Merge the post-confirmation trend fields FIRST, so the trend signal can refine the engine handoff.
     if trend_history is not None and not trend_history.empty:
         t = trend_history.copy()
         t["as_of_date"] = pd.to_datetime(t["as_of_date"])
@@ -85,6 +82,24 @@ def build_semantic_history(replay_history: pd.DataFrame, trend_history: pd.DataF
         for c in _TREND_COLS:
             if c != "as_of_date" and c not in h.columns:
                 h[c] = np.nan
+
+    # TO-0 (Track D): route clearly-post-confirmation names to the trend engine. The mode-state machine
+    # only maps the single `accepted_above_watch` proxy to the trend engine, orphaning above-MA250 names in
+    # other transitional states (e.g. `transition_watch`) as `unknown_or_transition` even though `trend.py`
+    # has computed a full trend state for them. Promote those rows: where the engine is unknown_or_transition
+    # AND a post-confirmation trend state exists for that bar, the trend engine is the active one.
+    if "post_confirmation_trend_state" in h.columns:
+        promote = (h["active_engine"] == "unknown_or_transition") & h["post_confirmation_trend_state"].notna()
+        h.loc[promote, "active_engine"] = "post_confirmation_trend_engine"
+
+    # Engine-keyed semantics + gating are computed AFTER the handoff is finalized.
+    h["hazard_semantics"] = np.where(
+        h["active_engine"] == "repair_retry_hazard_engine",
+        "active_repair_retry_metric", "not_applicable_post_confirmation_handoff",
+    )
+    for col in _HAZARD_COLS:
+        if col in h.columns:
+            h[f"{col}_gated"] = np.where(h["active_engine"] == "repair_retry_hazard_engine", h[col], np.nan)
 
     h["trend_semantics"] = np.where(
         h["active_engine"] == "post_confirmation_trend_engine",

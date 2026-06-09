@@ -45,6 +45,54 @@ def _clip01(x):
         return np.nan
 
 
+def _safe_nanmean(vals) -> float:
+    """Mean of the finite entries; NaN (no warning) if none are finite (early-window rows)."""
+    a = np.asarray([v for v in vals], dtype=float)
+    a = a[np.isfinite(a)]
+    return float(a.mean()) if a.size else np.nan
+
+
+# --- TO-1 (Track D): SOTA trend-strength indicators that *spread* (don't peg at 1.0 like the
+# fixed-denominator clips). All vectorized (no per-row Python apply). See docs/research/04. ---
+
+def _efficiency_ratio(close: pd.Series, window: int = 20) -> pd.Series:
+    """Kaufman fractal efficiency: |net move| / summed path over ``window`` ∈ [0,1]. High = clean trend."""
+    net = (close - close.shift(window)).abs()
+    path = close.diff().abs().rolling(window).sum()
+    return (net / path.replace(0, np.nan)).clip(0.0, 1.0)
+
+
+def _adx(high: pd.Series, low: pd.Series, close: pd.Series, window: int = 14) -> pd.Series:
+    """Wilder's ADX (directional-movement trend strength), Wilder-smoothed via EWM."""
+    up, dn = high.diff(), -low.diff()
+    plus_dm = pd.Series(np.where((up > dn) & (up > 0), up, 0.0), index=close.index)
+    minus_dm = pd.Series(np.where((dn > up) & (dn > 0), dn, 0.0), index=close.index)
+    tr = pd.concat([(high - low), (high - close.shift()).abs(), (low - close.shift()).abs()], axis=1).max(axis=1)
+    a = 1.0 / window
+    atr = tr.ewm(alpha=a, adjust=False).mean().replace(0, np.nan)
+    plus_di = 100.0 * plus_dm.ewm(alpha=a, adjust=False).mean() / atr
+    minus_di = 100.0 * minus_dm.ewm(alpha=a, adjust=False).mean() / atr
+    dx = 100.0 * (plus_di - minus_di).abs() / (plus_di + minus_di).replace(0, np.nan)
+    return dx.ewm(alpha=a, adjust=False).mean()
+
+
+def _trend_r2(close: pd.Series, window: int = 60) -> pd.Series:
+    """Rolling R² of log-price vs a time trend ∈ [0,1] — trend "tightness"/linearity (vectorized)."""
+    t = pd.Series(np.arange(len(close), dtype=float), index=close.index)
+    r = np.log(close).rolling(window).corr(t)
+    return (r ** 2).clip(0.0, 1.0)
+
+
+def _variance_ratio(close: pd.Series, k: int = 10, window: int = 120) -> pd.Series:
+    """Lo-MacKinlay-style persistence proxy: var(k-step log ret) / (k·var(1-step)); >1 trending, <1 mean-
+    reverting (a cheap, vectorized Hurst-adjacent measure; not a significance test — treat as a soft feature)."""
+    r1 = np.log(close).diff()
+    rk = np.log(close) - np.log(close).shift(k)
+    v1 = r1.rolling(window).var()
+    vk = rk.rolling(window).var()
+    return vk / (k * v1.replace(0, np.nan))
+
+
 def _assign_state(row) -> str:
     above_ma250 = bool(row.get("price_above_ma250", False))
     if not above_ma250:
@@ -57,17 +105,20 @@ def _assign_state(row) -> str:
     dd = row.get("drawdown_from_post_confirmation_peak_pct", np.nan)
     dist50 = row.get("distance_to_ma50_pct", np.nan)
 
-    if pd.notna(det) and det >= 0.70:
+    # Thresholds operate on the TO-1 de-saturated scores (bounded indicators that spread, so a clean strong
+    # trend lands ≈0.55–0.75 rather than pegging at 1.0). The state machine is descriptive; TO-3 will
+    # validate/calibrate it against a forward outcome.
+    if pd.notna(det) and det >= 0.65:
         return "trend_deterioration_watch"
-    if pd.notna(over) and over >= 0.70 and pd.notna(trend_q) and trend_q >= 0.50:
+    if pd.notna(over) and over >= 0.65 and pd.notna(trend_q) and trend_q >= 0.45:
         return "overextended_trend"
-    if pd.notna(days) and days <= 20 and pd.notna(trend_q) and trend_q >= 0.45:
+    if pd.notna(days) and days <= 20 and pd.notna(trend_q) and trend_q >= 0.40:
         return "early_confirmation"
     if pd.notna(dd) and dd >= 4 and pd.notna(pull_q) and pull_q >= 0.45:
         return "pullback_but_intact"
-    if pd.notna(trend_q) and trend_q >= 0.65 and (pd.isna(dist50) or dist50 >= -3):
+    if pd.notna(trend_q) and trend_q >= 0.55 and (pd.isna(dist50) or dist50 >= -3):
         return "healthy_trend"
-    return "early_confirmation"
+    return "indeterminate_trend"
 
 
 def build_post_confirmation_trend_state_history(
@@ -105,6 +156,14 @@ def build_post_confirmation_trend_state_history(
     p["rolling_60d_return_pct"] = (p["Close"] / p["Close"].shift(60) - 1.0) * 100.0
     p["price_above_ma250"] = p["Close"] > p["MA250"]
 
+    # TO-1: SOTA trend-strength indicators (bounded, de-saturated) computed once on the full series.
+    p["efficiency_ratio_20d"] = _efficiency_ratio(p["Close"], 20)
+    p["trend_r2_60d"] = _trend_r2(p["Close"], 60)
+    _high = p["High"] if "High" in p.columns else p["Close"]
+    _low = p["Low"] if "Low" in p.columns else p["Close"]
+    p["adx_14"] = _adx(_high, _low, p["Close"], 14)
+    p["variance_ratio_10_120"] = _variance_ratio(p["Close"], k=10, window=120)
+
     p["above_run_id"] = (p["price_above_ma250"] != p["price_above_ma250"].shift(1)).cumsum()
     above = p[p["price_above_ma250"]].copy()
     if above.empty:
@@ -125,31 +184,38 @@ def build_post_confirmation_trend_state_history(
             ma250_slope = row.get("ma250_slope_20d_pct", np.nan)
             ma50_slope = row.get("ma50_slope_20d_pct", np.nan)
             dd_peak = float(drawdown_abs.loc[dt])
+            er = row.get("efficiency_ratio_20d", np.nan)
+            r2 = row.get("trend_r2_60d", np.nan)
+            adx = row.get("adx_14", np.nan)
+            vr = row.get("variance_ratio_10_120", np.nan)
 
-            trend_quality = np.nanmean([
-                _clip01((dist250 + 2.0) / 10.0),
-                _clip01((ma_spread + 1.0) / 6.0),
-                _clip01((ma250_slope + 1.0) / 4.0),
-                _clip01(1.0 - dd_peak / 15.0),
+            # TO-1 — STRENGTH / PERSISTENCE axis: bounded SOTA indicators that *spread* (path efficiency,
+            # trend linearity R², directional strength ADX, Lo-MacKinlay persistence). No drawdown/MA50
+            # terms ⇒ disjoint from pullback_quality (de-collinearized).
+            trend_quality = _safe_nanmean([
+                _clip01(er),
+                _clip01(r2),
+                _clip01(adx / 50.0) if pd.notna(adx) else np.nan,
+                _clip01(0.5 + (vr - 1.0)) if pd.notna(vr) else np.nan,
             ])
-            pullback_quality = np.nanmean([
-                _clip01(1.0 - dd_peak / 15.0),
-                _clip01((dist250 + 1.0) / 8.0),
-                _clip01((ma250_slope + 0.5) / 3.0),
-                _clip01(1.0 if dist50 >= -5 else 0.2),
+            # PULLBACK / DEPTH axis: how the current dip from the post-confirmation peak looks. Disjoint
+            # feature base (drawdown depth + MA50 position) from the strength axis above.
+            pullback_quality = _safe_nanmean([
+                _clip01(1.0 - dd_peak / 12.0),
+                _clip01((dist50 + 8.0) / 12.0),
             ])
             extension_atr_multiple = dist50 / atr_pct if pd.notna(dist50) and pd.notna(atr_pct) and atr_pct != 0 else np.nan
-            overextension = np.nanmean([
+            overextension = _safe_nanmean([
                 _clip01(dist50 / 12.0),
                 _clip01(dist250 / 25.0),
                 _clip01((row.get("RSI14", np.nan) - 60.0) / 20.0),
                 _clip01(extension_atr_multiple / 4.0 if pd.notna(extension_atr_multiple) else np.nan),
             ])
-            deterioration = np.nanmean([
-                _clip01(dd_peak / 15.0),
+            deterioration = _safe_nanmean([
+                _clip01(dd_peak / 12.0),
                 _clip01((-dist50) / 8.0),
                 _clip01((-ma50_slope) / 3.0),
-                _clip01(1.0 if dist250 < 1 else 0.0),
+                _clip01(1.0 - _clip01(adx / 25.0)) if pd.notna(adx) else np.nan,
             ])
 
             rec = {
@@ -171,6 +237,10 @@ def build_post_confirmation_trend_state_history(
                 "post_confirmation_peak_close": float(peak_close.loc[dt]),
                 "drawdown_from_post_confirmation_peak_pct": float(dd_peak),
                 "extension_atr_multiple": float(extension_atr_multiple) if pd.notna(extension_atr_multiple) else np.nan,
+                "efficiency_ratio_20d": float(er) if pd.notna(er) else np.nan,
+                "trend_r2_60d": float(r2) if pd.notna(r2) else np.nan,
+                "adx_14": float(adx) if pd.notna(adx) else np.nan,
+                "variance_ratio_10_120": float(vr) if pd.notna(vr) else np.nan,
                 "trend_quality_score": float(trend_quality),
                 "pullback_quality_score": float(pullback_quality),
                 "overextension_score": float(overextension),
@@ -229,6 +299,7 @@ def build_post_confirmation_latest_context(
         "overextended_trend": "consider_careful_extension_monetization_without_becoming_bearish",
         "pullback_but_intact": "avoid_panic_hedging_monitor_ma50_ma250_response",
         "trend_deterioration_watch": "increase_protection_prepare_handoff_to_repair_engine",
+        "indeterminate_trend": "insufficient_trend_signal_no_directional_overlay",
     }
-    context["option_overlay_research_hint"] = hints.get(context["trend_state"], "handoff_to_repair_retry_hazard_engine")
+    context["option_overlay_research_hint"] = hints.get(context["trend_state"], "insufficient_trend_signal_no_directional_overlay")
     return context
