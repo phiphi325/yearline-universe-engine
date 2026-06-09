@@ -1,6 +1,6 @@
-# Phase 8 — Retry-success (Track A): RS-1 delivered
+# Phase 8 — Retry-success (Track A): RS-1…RS-4 delivered
 
-**Status:** ◐ IN PROGRESS — **RS-1 (labels + baseline) + RS-2 (classifier) + RS-3 (calibrate + blend + gate) DELIVERED** — the blend **clears the trust gate**; RS-4 (gated surfacing) next.
+**Status:** ✅ DELIVERED — **RS-1 (labels + baseline) + RS-2 (classifier) + RS-3 (calibrate + blend + gate) + RS-4 (gated live surfacing) DELIVERED.** The blend **clears the trust gate** and is now surfaced as an opt-in, additive `retry_success_context` overlay (with the occurrence×success composite), default-off ⇒ envelope byte-identical.
 **Part of:** the planner roadmap — see [`../planner/01_retry_success_plan.md`](../planner/01_retry_success_plan.md).
 **Source analysis:** [`../../research/01_retry_success_probability_2026-06-08.md`](../../research/01_retry_success_probability_2026-06-08.md).
 **Theme:** make retry **success** (*given an attempt, does it reclaim and **hold**?*) trustworthy —
@@ -227,3 +227,97 @@ blend: an **opt-in, additive, gated** `retry_success_context` block (the success
 `P(successful reclaim within H) = P(retry ≤ H) × P(success │ retry)` composite **only where both gates
 pass**. Default off ⇒ envelope byte-identical. The standing caveat (thin sample; re-validate
 walk-forward; the dominant lever is more labelled attempts) travels with it.
+
+## 11. RS-4 — gated success overlay, live (delivered)
+
+RS-4 turns the RS-3 gate-passing surface into a **live, opt-in, additive overlay**, mirroring Phase-7's
+occurrence-blend wiring (`blend_surface.py`) exactly. New module **`success_surface.py`**:
+
+- **`build_success_surface_model(tickers_data)`** — compute-once (universe-level, live-ticker-independent):
+  build the RS-2 success table, take the RS-3 blend weight + **trust gate** on the recommended (blend)
+  surface, and fit the classifier on all completed attempts for live scoring. Built once by the universe
+  runner and reused per ticker.
+- **`apply_success_live(...)`** — score the live readiness state, blend with the live empirical success
+  probability, attach the gate.
+- **`build_retry_success_context(...)`** — assemble the live success-state row (current recovery state +
+  leakage-safe path/cross-sectional features at as-of) and emit the **`retry_success_context`** block:
+  the single **P(success │ retry)** (gated blend) + provenance + gate, and the per-horizon composite
+  **P(reclaim ≤ H) = P(retry ≤ H) × P(success │ retry)**.
+
+**Surfacing rules (capability-before-consumer, conservative):**
+- Opt-in via **`surface_success=True`** (pooled-only — cross-sectional features need the universe).
+  **Default off ⇒ the envelope is byte-identical** (the `retry_success_context` key is simply absent).
+- Success is a **single** probability (not horizon-indexed); only the composite is per-horizon.
+- A horizon's composite is **surfaced** (`surfaced_probability`) only where **both gates pass** — the
+  occurrence gate *and* the success gate (RS-3). Otherwise the raw product is retained but labelled
+  diagnostic (`surfaced_probability: null`), so a consumer never mistakes an un-gated number for a trusted
+  one.
+- **The occurrence gate prefers the Phase-7 blend** (see §11.2): per horizon, RS-4 takes the
+  classifier↔empirical blend's probability + gate where the blend passes, else falls back to the
+  canonical empirical estimator gated by the Phase-4 isotonic trust gate. Each horizon records which one
+  backed it (`occurrence_surface`).
+- The empirical and occurrence estimators stay **canonical**; this overlay never overwrites them.
+
+**Wiring:** `hazard.run_hazard_layer(surface_success=, success_model=)` → `ticker_pipeline`
+(`run_universe_pipeline(surface_success=True)` builds the compute-once success **and** blend models and
+threads them) → `context_export.build_statistical_context_envelope(success_context=)` attaches the
+top-level block. Enabling `surface_success` computes the Phase-7 blend for the occurrence gate **without**
+attaching the blend *block* (that stays gated on `surface_blend`), so the hazard block is unchanged. The
+JSON schema gains an **optional** `retry_success_context` property (not in `required`, preserving parity).
+
+**Reproduce:** `python3 docs/phased_design/phase_08/run_rs4_success_overlay.py` →
+`artifacts/rs4_success_overlay_example.json` (one full live block) + `artifacts/rs4_success_overlay_summary.csv`
+(per-ticker P(success│retry), gate, composite@40d/@60d + occurrence_surface) + a byte-identical-when-off check.
+
+### 11.1 Live result (real universe, 9 tickers)
+
+Running the overlay live (`run_rs4_success_overlay.py`) attaches an available block to **all 9 tickers**,
+all gate-passing. `P(success │ retry)` spans **0.15 (META) → 0.32 (NVDA)** — near/below the 0.352 base
+rate, the expected footprint of the shrinkage-calibrated blend (trust the ordering, not the level).
+
+All 9 tickers surface the composite at **every** horizon (10/20/40/60d), each backed by the Phase-7 blend
+occurrence surface. Example — **MSFT** (`artifacts/rs4_success_overlay_example.json`):
+
+| field | value |
+|---|---|
+| `p_success_given_retry` (blend) | **0.174** |
+| classifier / empirical components | 0.00 / 0.347 (w=0.5) |
+| success gate | ✅ AUC 0.702, MACE 0.036 |
+| composite `P(reclaim ≤ 40d)` | 0.548 × 0.174 = **0.095** (surfaced; `occurrence_surface = phase7_blend`) |
+| composite `P(reclaim ≤ 60d)` | 0.696 × 0.174 = **0.121** (surfaced; `occurrence_surface = phase7_blend`) |
+
+Two things this demonstrates on real data: (1) the **occurrence side rides the Phase-7 blend** — 60d is
+surfaced (not withheld) because the blend calibrates that horizon where the isotonic-only surface can't
+(§11.2); (2) the **blend tempers extreme single-row classifier calls** — the fitted-on-all classifier
+scored MSFT's live readiness state at ~0.00, which the 0.5 blend pulls to 0.174 (the gate was validated on
+OOF, so the *surfaced* blend is the trustworthy number; the raw classifier point is not). Per-ticker table
+in `artifacts/rs4_success_overlay_summary.csv`.
+
+### 11.2 Which occurrence surface backs the composite (and why 60d is *not* withheld)
+
+The composite needs a trustworthy `P(retry ≤ H)`. There are two occurrence surfaces, and they disagree at
+long horizons (pooled, leave-one-ticker-out):
+
+| H | isotonic-only gate (Phase 4) | Phase-7 blend gate | composite uses |
+|---|---|---|---|
+| 10 | ✅ MACE 0.055 | ✅ AUC 0.833, MACE 0.045 | blend |
+| 20 | ✅ MACE 0.047 | ✅ AUC 0.806, MACE 0.068 | blend |
+| 40 | ✅ MACE 0.056 | ✅ AUC 0.807, MACE 0.054 | blend |
+| 60 | ❌ MACE **0.130** | ✅ AUC 0.792, MACE **0.058** | blend |
+
+The isotonic-only surface's calibration degrades monotonically with horizon (`mace_raw` 0.036→0.048→0.077→
+0.109) and **fails the gate at 60d** — saturation (P(retry≤60d) is high, so predictions compress near the
+top) plus per-step hazard error compounding, and at 60d the OOF isotonic even *overfits* (0.130 > the 0.109
+raw). Phase 7 already solved this: averaging the discriminating classifier with the empirical estimator
+(w=0.5) tempers the long-horizon over-confidence, so the **blend passes at 60d (MACE 0.058) with higher AUC
+than isotonic at every horizon**. RS-4 therefore composes against the blend where it passes — so the 60d
+composite is **surfaced, not withheld**. The isotonic gate remains the labelled fallback for any horizon
+where the blend is unavailable/failing.
+
+**Files (RS-4):** `src/yearline_universe/success_surface.py` (new) + `__init__.py` exports;
+`hazard.py`, `ticker_pipeline.py`, `context_export.py` (additive wiring + optional schema key);
+`tests/test_success_surface.py` (new, +5); `run_rs4_success_overlay.py` + artifacts.
+
+> **Caveats travel with the surface.** The gate PASS is thin-sample and high-variance; the blend's
+> calibration is largely base-rate shrinkage (see [`reliability/`](reliability/README.md)) — trust the
+> ranking, size gently on the level, and re-validate walk-forward as labelled attempts accumulate.

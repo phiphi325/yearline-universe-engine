@@ -120,6 +120,7 @@ def build_statistical_context_envelope(
     source_info: Mapping[str, Any] | None = None,
     retry_timing_context: Mapping[str, Any] | None = None,
     blend_context: Mapping[str, Any] | None = None,
+    success_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build the per-ticker SingleTickerStatisticalContextEnvelope.
 
@@ -251,6 +252,12 @@ def build_statistical_context_envelope(
             "This context is an evidence overlay and must not auto-execute trades.",
         ],
     }
+    # V13.4 Phase 8 (RS-4, consumer wiring): additive, gated retry-SUCCESS overlay — the success analog
+    # of retry_hazard_context. Attached only when success surfacing was enabled (surface_success=True)
+    # AND a gate-aware live success surface is available, so the default envelope is byte-identical
+    # (key absent). The empirical/occurrence probabilities above stay canonical.
+    if success_context and success_context.get("available"):
+        envelope["retry_success_context"] = dict(success_context)
     return make_json_safe(envelope)
 
 
@@ -377,6 +384,9 @@ STATISTICAL_CONTEXT_JSON_SCHEMA = {
         "option_overlay_research_hint": {"type": "object"},
         "warnings": {"type": "array", "items": {"type": "string"}},
         "disclaimers": {"type": "array", "items": {"type": "string"}},
+        # V13.4 Phase 8 (RS-4): optional, additive retry-SUCCESS overlay; present only when
+        # surface_success=True and a gate-aware live success surface is available.
+        "retry_success_context": {"type": "object"},
     },
     "additionalProperties": True,
 }
