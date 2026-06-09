@@ -128,13 +128,13 @@ of the blend. That 0.012 is the entire marginal value of the empirical anchor's 
 
 ### 4.2 What the figures show
 
-- **Reliability diagram** (`rs3_reliability_diagram.png`): the blend (crimson) tracks the 45° perfect-
+- **Reliability diagram** (`rs3_reliability_diagram.svg`): the blend (crimson) tracks the 45° perfect-
   calibration line tightly across its whole range, while the raw classifier (gray) sits well below the
   line at the high end (predicts ~0.87, observes ~0.69) — classic over-confidence. **But** notice the
   blend's curve only spans **x ∈ [0.17, 0.62]**: it has *no points* in the 0.7–0.9 region where sizing
   decisions would most want a confident signal. Calibrated, yes — but only because it refuses to make
   strong calls.
-- **Prediction-density histogram** (`rs3_prediction_histogram.png`): the shrinkage made visible. The raw
+- **Prediction-density histogram** (`rs3_prediction_histogram.svg`): the shrinkage made visible. The raw
   classifier (gray) has real mass at both tails (0.0–0.1 and 0.8–1.0). The blend (crimson) is squeezed
   into a narrow band hugging the base-rate line (0.35), std 0.267 → 0.140.
 
@@ -167,6 +167,29 @@ that series' mean. The diagnostic simply confirms the mechanism and measures it 
 
 ---
 
+## 5.1 · Follow-up — *should we de-shrink the blend?* (0.8/0.2 or isotonic)
+
+A natural next question: if the 0.5/0.5 blend shrinks so hard, should we move to **0.8 raw + 0.2
+empirical** or to an **isotonic** surface to recover sharpness while keeping MACE ≤ 0.10? I tested the
+whole blend-weight + isotonic frontier (`analyze_blend_frontier.py`) with an episode-cluster bootstrap.
+Short answer: **not yet, and not those settings.**
+
+- **The AUC "alpha" is already in the 0.5 blend** (0.702 vs. raw 0.710) — shrinkage costs ranking almost
+  nothing, so there's no alpha to "unlock." What it costs is *resolution*.
+- **0.8/0.2 fails the gate** (MACE **0.107**); the sharpest gate-passing blend on current data is **w≈0.7**
+  (MACE 0.082, +37% resolution). **Isotonic** either fails (iso-raw MACE 0.103, and its AUC degrades to
+  0.679 — a small-sample artifact) or guts discrimination (iso-blend AUC 0.645).
+- **No surface — not even the shipped 0.5 — clears the gate with bootstrap margin** on n=162
+  (P(MACE ≤ 0.10): 0.84 → 0.35 → 0.19 → 0.04 as you sharpen). "Strictly under 0.10" isn't a property any
+  surface has yet; the binding constraint is **sample size**, not the weight.
+
+**Recommendation:** keep 0.5/0.5 shipped; replace the Brier-min blend rule with **"maximize resolution
+subject to bootstrap-p95 MACE ≤ 0.10"** (auto-promotes w→0.7→isotonic as data grows); add
+leave-one-period-out validation before trusting any sharper surface. Full analysis + frontier figure:
+**[`production_adjustment_analysis.md`](production_adjustment_analysis.md)**.
+
+---
+
 ## 6 · Reproduce
 
 ```bash
@@ -195,6 +218,9 @@ bounds, and the "blend is no sharper than raw" invariant).
 | `docs/phased_design/phase_08/reliability/rs3_reliability_diagnostic.json` | results |
 | `docs/phased_design/phase_08/reliability/rs3_reliability_diagram.svg` | figure |
 | `docs/phased_design/phase_08/reliability/rs3_prediction_histogram.svg` | figure |
+| `docs/phased_design/phase_08/reliability/production_adjustment_analysis.md` | §5.1 follow-up: should we de-shrink the blend? (0.8/0.2 / isotonic) |
+| `docs/phased_design/phase_08/reliability/analyze_blend_frontier.py` | runnable: blend-weight + isotonic frontier + episode-cluster bootstrap |
+| `docs/phased_design/phase_08/reliability/rs3_blend_frontier.{json,csv,svg}` | frontier results + figure |
 
 ---
 
