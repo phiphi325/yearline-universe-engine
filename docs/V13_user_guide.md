@@ -466,6 +466,103 @@ object storage**:
 - Keep the container stateless: all durable output goes to object storage; logs to
   the platform's log sink.
 
+### 12.5 GitHub Actions — CI + scheduled context delivery to `option-mgmt-2026`
+
+GitHub Actions covers the two real-world deployment jobs without standing infrastructure: **(A)** gate
+every change with the test suite, and **(B)** run the universe on a schedule and **deliver the
+statistical-context envelopes** to the consumer repo, [`option-mgmt-2026`](https://github.com/phiphi325/option-mgmt-2026).
+
+> **Boundary (non-negotiable).** This engine **produces evidence context, never trades.** Every envelope
+> carries `must_not_auto_execute: true`, and a probability is meant to be *shown* only where its trust gate
+> passes. The deployment delivers context **to** `option-mgmt-2026`; it does **not** place orders, and it
+> treats `option-mgmt-2026` as a downstream **consumer** (the engine never reaches into its trading logic).
+> See `docs/option-mgmt-integration/` for the adapter design (the planned V13.8 `OM-Y0` boundary).
+
+**The delivery pattern.** The engine and the consumer stay decoupled — the engine writes a versioned,
+read-only context bundle; `option-mgmt-2026` pulls it on its own terms:
+
+```text
+[ Actions cron ] -> run_universe_mvp.py --provider auto -> exports/*.json (+ bundle)
+      -> publish as a dated Release asset / artifact  ──pull──>  option-mgmt-2026 (consumes as overlay)
+      └─ optional: repository_dispatch ping so the consumer refreshes on new context
+```
+
+**(A) CI — test gate on every PR** (`.github/workflows/ci.yml`):
+
+```yaml
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -e ".[dev]"
+      - run: bash scripts/run_tests.sh        # per-file, OOM-safe (21 files must pass)
+```
+
+**(B) Scheduled scan + deliver context** (`.github/workflows/daily-context.yml`):
+
+```yaml
+name: daily-context
+on:
+  schedule: [{ cron: "30 7 * * 1-5" }]        # 07:30 UTC on weekdays (after the US close prior day)
+  workflow_dispatch: {}                        # allow manual runs
+permissions:
+  contents: write                              # to publish a Release in THIS repo
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -e ".[live]"
+      - name: Run the universe (pooled hazard + gated overlays)
+        env:
+          PRICE_API_KEY: ${{ secrets.PRICE_API_KEY }}   # data provider creds via repo secrets — never in code
+        run: |
+          python scripts/run_universe_mvp.py config/universe_mega_cap_ai_infra.yaml \
+            --provider auto --pool-hazard --calibrate --surface-blend --surface-success
+      - name: Stamp the bundle with the run date
+        run: |
+          mkdir -p dist && AS_OF=$(date -u +%F)
+          cp -r exports "dist/context_$AS_OF"
+          tar -czf "dist/context_$AS_OF.tar.gz" -C dist "context_$AS_OF"
+      - name: Publish as a dated Release asset (read-only, versioned)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: context-${{ github.run_number }}
+          files: dist/*.tar.gz
+      - name: Notify the consumer repo (optional)
+        run: |
+          curl -sf -X POST \
+            -H "Authorization: Bearer ${{ secrets.OPTION_MGMT_DISPATCH_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/phiphi325/option-mgmt-2026/dispatches \
+            -d '{"event_type":"yearline-context-updated"}'
+```
+
+`option-mgmt-2026` then runs its **own** workflow on the `repository_dispatch: yearline-context-updated`
+event (or simply polls the Releases API), downloads the latest bundle, and feeds the gated envelopes into
+its evidence/overlay layer. Notes:
+
+- **Secrets, not code.** Data-provider keys and the cross-repo dispatch token live in
+  *Settings → Secrets and variables → Actions*. Never commit them; the engine reads them from `env`.
+- **Idempotent + versioned.** Each run publishes a dated bundle (`context_YYYY-MM-DD`), so history is
+  preserved and re-runs overwrite cleanly — the same discipline as §12.4's object-storage prefix.
+- **Cache the prices.** Use `actions/cache` on `data/price_cache/` so cold runners don't re-download
+  everything (keyed by date).
+- **Cross-repo auth.** The dispatch token is a fine-grained PAT (or GitHub App token) scoped to
+  *only* `option-mgmt-2026`'s "contents/metadata + dispatch" — least privilege. If you instead commit the
+  bundle into a `data/` branch of the consumer repo, scope the token to that path and open a PR rather
+  than pushing to its default branch.
+- **Consume only gated surfaces.** Downstream, read `retry_hazard_context` /
+  `retry_success_context` and honor each block's gate (`gate_passed`, `surfaced_probability`); treat
+  un-gated numbers as diagnostic. The composite `P(reclaim≤H)` is surfaced only where both gates pass.
+
 ---
 
 *See `docs/V13_universe_statistical_context_engine_development_spec.md` for the
