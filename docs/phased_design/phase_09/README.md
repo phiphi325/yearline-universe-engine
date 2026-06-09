@@ -26,6 +26,15 @@ JSON-serializable **`YearlineContext`** contract `option-mgmt-2026` consumes —
   coupling hand-off the option-mgmt jobs layer ingests).
 - **`YEARLINE_CONTEXT_JSON_SCHEMA`** + **`ADAPTER_VERSION`** (the contract pin; bump on any shape change).
 
+### V13.8.1 — `YearlineTrendSeries` (presentation artifact for the trend plot)
+- **`to_yearline_trend_series(semantic_history, price_df=…) -> dict`** — a thin, deterministic, **read-only**
+  time-series projection over the engine's existing per-day history (`distance_to_ma250_pct`, the de-saturated
+  trend scores, gated `hazard_today` / `p_retry_40d`, `active_engine` regime band + optional `close`/`MA`
+  overlays), aligned to `dates`. The data source for option-mgmt's **OM-Y3 trend plot** — **separate** from
+  the gated decision contract (it never enters the replay hash), so the chart payload never bloats it.
+  `export_yearline_trend_series()` + `YEARLINE_TREND_SERIES_JSON_SCHEMA` + `TREND_SERIES_VERSION` pin; a real
+  180-day MSFT fixture is committed. Rationale: [`ux_trend_plot_support_analysis.md`](ux_trend_plot_support_analysis.md).
+
 ### Design rules honored (from the assessment)
 - **No new modelling** — a pure projection over the existing Phase-7/8 envelope; deterministic.
 - **Gate-respect baked in.** Occurrence `p_retry` prefers the **Phase-7 blend** (the gate-passing surface)

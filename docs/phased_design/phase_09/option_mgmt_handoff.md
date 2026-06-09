@@ -32,9 +32,11 @@ A nightly per-ticker artifact. The **consumed contract** is `YearlineContext` (t
 needs), emitted verbatim by yearline's V13.8 adapter. Pin: **`ADAPTER_VERSION = "v13_8_yearline_context_adapter_v1"`**.
 
 **Where the assets live (this repo, for your contract test):**
-- JSON schema: `exports/yearline_context/yearline_context_schema.json`
-- Fixtures: `exports/yearline_context/fixture_msft_gated.json`, `…/fixture_stale_empty.json`
-  (also mirrored in `docs/phased_design/phase_09/artifacts/`).
+- **Decision contract** (`YearlineContext`): schema `exports/yearline_context/yearline_context_schema.json`;
+  fixtures `…/fixture_msft_gated.json`, `…/fixture_stale_empty.json`.
+- **Presentation series** (`YearlineTrendSeries`, V13.8.1 — for the trend plot, §6): schema
+  `…/yearline_trend_series_schema.json`; fixture `…/fixture_msft_trend_series.json`.
+- All mirrored in `docs/phased_design/phase_09/artifacts/`.
 
 These are the bytes to vendor into `option-mgmt-2026` as your golden fixtures.
 
@@ -151,12 +153,27 @@ A yearline-influenced decision must fold the contract into replay identity: add 
 the consumed fields`. A decision that consumes **no** yearline context must hash **identically** to the
 pre-OM-Y4 world (back-compat is acceptance-gated).
 
-## 6. The trend plot (UX) — needs a second artifact
+## 6. The trend plot (UX) — `YearlineTrendSeries` (V13.8.1, **delivered**)
 The V12-style **trend line plot** is a *time series* (distance-to-MA250, the trend scores, hazard over the
-replay window, price+MA overlays). The scalar `YearlineContext` **cannot** feed it. yearline will provide a
-small, separate, versioned **`YearlineTrendSeries`** presentation artifact (read-only; not an engine input)
-as the plot's data source. Treat it as OM-Y3 panel data, **not** part of the gated decision contract. Full
-analysis: [`ux_trend_plot_support_analysis.md`](ux_trend_plot_support_analysis.md).
+replay window, price+MA overlays). The scalar `YearlineContext` **cannot** feed it — so yearline now also
+emits a small, separate, versioned **`YearlineTrendSeries`** presentation artifact (read-only; **not** an
+engine input; never enters the replay hash). Pin: **`series_version = "v13_8_1_yearline_trend_series_v1"`**.
+
+Shape (parallel arrays aligned to `dates`):
+```jsonc
+{ "available": true, "ticker": "MSFT", "as_of": "2026-05-29", "series_version": "v13_8_1_yearline_trend_series_v1",
+  "n": 180, "dates": ["2025-09-10", …],
+  "distance_to_ma250_pct": [...],            // headline trend line (0 = yearline)
+  "active_engine": ["repair_retry_hazard_engine", …],   // regime band shading
+  "post_confirmation_trend_state": [...],
+  "trend_quality": [...], "pullback_quality": [...], "overextension": [...], "deterioration": [...],
+  "drawdown_so_far_pct": [...], "hazard_today": [...], "p_retry_40d": [...],   // gated ⇒ null off-regime
+  "close": [...], "ma20": [...], "ma50": [...], "ma250": [...],               // price/MA overlay
+  "must_not_auto_execute": true }
+```
+**OM-Y3 plots from this** (the current-state *card* still comes from `YearlineContext`). Vendor
+`fixture_msft_trend_series.json` + `yearline_trend_series_schema.json` as the panel's golden fixture.
+Full analysis: [`ux_trend_plot_support_analysis.md`](ux_trend_plot_support_analysis.md).
 
 ## 7. Versioning + cross-repo contract test + maintenance
 - **yearline owns** the envelope/adapter schema (`schema_version`, `model_stack_version`, `adapter_version`).
