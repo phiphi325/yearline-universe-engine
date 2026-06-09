@@ -16,7 +16,7 @@ of work. Analysis = *why/what*; planner = *how/when, PR by PR*.
 | **A — Retry-success** | RS-1…RS-4: make `P(success │ retry)` trustworthy (today a gated-off prototype) | **HIGH (now)** | **`phase_08/`** | this repo |
 | **B — option-mgmt integration** | V13.8 adapter (this repo) + OM-Y0…Y5 (option-mgmt-2026) | **HIGH (now)** | **`phase_09/`** (yearline side) | this repo + `option-mgmt-2026` |
 | **C — Multi-sector** | MS-0…MS-5: widen the universe | **LOWER / deferred** (gated on a data upload) | **`phase_10/`** | this repo |
-| **D — Trend outlook** | TO-0…TO-4: make the post-confirmation **trend engine** discriminating + gated (the trend analog of Track A) | **MEDIUM** (TO-0/TO-1 interleave now) | **`phase_11/`** | this repo |
+| **D — Trend outlook** | TO-0…TO-4: make the post-confirmation **trend engine** discriminating + gated (the trend analog of Track A) | **MEDIUM** (TO-0/TO-1 ✅ delivered; TO-2…TO-4 next) | **`phase_11/`** | this repo |
 
 The detailed specs:
 
@@ -38,7 +38,7 @@ snapshot subfolder) — exactly like `phase_01/…phase_07/`. **New phase-specif
 | A — retry-success | **`phase_08/`** | RS-1…RS-4 as sub-PRs within the phase (the way Phase 7 held PR-A…E); `README.md` + `artifacts/` (head-to-head vs base rate, calibration, gate) | when RS-1 starts |
 | B — option-mgmt (yearline side) | **`phase_09/`** | the V13.8 adapter + the `YearlineContext` contract + schema + fixtures + the cross-repo contract test; `README.md` + `artifacts/` | when V13.8 starts |
 | C — multi-sector | **`phase_10/`** | MS-0…MS-5 (deferred, data-gated) | when MS-0 data lands |
-| D — trend outlook | **`phase_11/`** | TO-0…TO-4 as sub-PRs (coverage/hygiene → score resolution → regime prob → forward label+validation → calibration+gate+`trend_outlook_context`); `README.md` + `artifacts/` | when TO-0 starts |
+| D — trend outlook | **`phase_11/`** | TO-0…TO-4 as sub-PRs (coverage/hygiene → score resolution → regime prob → forward label+validation → calibration+gate+`trend_outlook_context`); `README.md` + `artifacts/` | **TO-0/TO-1 delivered** (TO-2…TO-4 next) |
 
 Notes:
 - **`phase_08` and `phase_09` can be in flight in parallel** — the numbers are record IDs, not a strict
@@ -99,8 +99,8 @@ parallel.
 | `option-mgmt-2026` | OM-Y1…Y4 contract → ingest → panel → gated consumption | ☐ |
 | `option-mgmt-2026` | OM-Y5 stretch | ☐ |
 | `phase_10` | MS-0 data & taxonomy (deferred) | ☐ (blocked on data) |
-| `phase_11` | TO-0 trend handoff coverage + hygiene | ☐ |
-| `phase_11` | TO-1 score resolution (vol-normalized + cross-sectional; de-collinearize) | ☐ |
+| `phase_11` | TO-0 trend handoff coverage + hygiene | ✅ (delivered; `phase_11/`) |
+| `phase_11` | TO-1 score resolution (de-saturated + de-collinearized indicators) | ✅ (delivered; `phase_11/`) |
 | `phase_11` | TO-2 regime probability (HMM / changepoint) | ☐ |
 | `phase_11` | TO-3 forward trend label + LOTO validation | ☐ |
 | `phase_11` | TO-4 calibration + gate (resolution floor) + gated `trend_outlook_context` | ☐ |

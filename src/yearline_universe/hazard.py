@@ -867,15 +867,22 @@ def run_hazard_layer(
     # (surface_success) as the consumer-grade occurrence surface for the composite. Attachment of the
     # blend *block* to the envelope stays gated on surface_blend (in ticker_pipeline), so enabling only
     # success does not change the hazard block — byte-identical-when-blend-off is preserved.
+    # Part B.4 (research 02): when surfacing IS requested but skipped, record the TRUE reason
+    # (no live hazard layer / no open transition) instead of the misleading "not_requested" default.
     blend_context = {"available": False, "warning": "blend_not_requested_pass_surface_blend_true"}
-    if (surface_blend or surface_success) and pooled and hazard_context.get("available") and not horizon_reference.empty:
-        from .blend_surface import build_blend_context
-        live_rows_b = panel[panel["is_live_transition"] == True]
-        if not live_rows_b.empty:
-            live_row_b = live_rows_b.sort_values("as_of_date").tail(1).iloc[0].to_dict()
-            emp_b = empirical_horizon_probabilities_for_row(live_row_b, horizon_reference, HAZARD_HORIZONS)
-            emp_p = {h: emp_b[h].get("cumulative_retry_probability") for h in (10, 20, 40, 60)}
-            blend_context = build_blend_context(tickers_data, ticker, live_row_b, emp_p, config, model=blend_model)
+    if surface_blend or surface_success:
+        if not (pooled and hazard_context.get("available") and not horizon_reference.empty):
+            blend_context = {"available": False, "warning": "no_live_hazard_layer_for_blend"}
+        else:
+            from .blend_surface import build_blend_context
+            live_rows_b = panel[panel["is_live_transition"] == True]
+            if live_rows_b.empty:
+                blend_context = {"available": False, "warning": "no_open_live_transition_to_score"}
+            else:
+                live_row_b = live_rows_b.sort_values("as_of_date").tail(1).iloc[0].to_dict()
+                emp_b = empirical_horizon_probabilities_for_row(live_row_b, horizon_reference, HAZARD_HORIZONS)
+                emp_p = {h: emp_b[h].get("cumulative_retry_probability") for h in (10, 20, 40, 60)}
+                blend_context = build_blend_context(tickers_data, ticker, live_row_b, emp_p, config, model=blend_model)
 
     # V13.4 Phase 8 (RS-4, consumer wiring): OPT-IN gated retry-SUCCESS overlay. Output-changing,
     # so default off; pooled-only (cross-sectional features need the universe) and only with a live
@@ -889,28 +896,33 @@ def run_hazard_layer(
     # gated by the Phase-4 isotonic trust gate. ``success_model`` is the compute-once model reused per
     # ticker (built once by the universe runner).
     success_context = {"available": False, "warning": "success_not_requested_pass_surface_success_true"}
-    if surface_success and pooled and hazard_context.get("available") and not horizon_reference.empty:
-        from .success_surface import build_retry_success_context
-        live_rows_s = panel[panel["is_live_transition"] == True]
-        if not live_rows_s.empty:
-            live_row_s = live_rows_s.sort_values("as_of_date").tail(1).iloc[0].to_dict()
-            emp_s = empirical_horizon_probabilities_for_row(live_row_s, horizon_reference, HAZARD_HORIZONS)
-            blend_ph = (blend_context or {}).get("per_horizon") or {}
-            iso_tg = (calibration_context or {}).get("trust_gate") or {}
-            occ_p, occ_gate, occ_surface = {}, {}, {}
-            for h in (10, 20, 40, 60):
-                bd = blend_ph.get(str(h)) or blend_ph.get(h) or {}
-                b_prob, b_pass = bd.get("blend_probability"), bool(bd.get("gate_passed"))
-                iso_pass = bool((iso_tg.get(str(h)) or iso_tg.get(h) or {}).get("passed"))
-                emp_h = emp_s[h].get("cumulative_retry_probability")
-                if b_prob is not None and b_pass:                      # Phase-7 blend: the better surface
-                    occ_p[h], occ_gate[h], occ_surface[h] = b_prob, True, "phase7_blend"
-                else:                                                  # fall back to empirical + isotonic gate
-                    occ_p[h], occ_gate[h], occ_surface[h] = emp_h, iso_pass, "empirical_isotonic"
-            success_context = build_retry_success_context(
-                tickers_data, ticker, live_row_s, occurrence_probs=occ_p,
-                occurrence_calibrated=occ_gate, occurrence_surface=occ_surface,
-                config=config, model=success_model)
+    if surface_success:
+        if not (pooled and hazard_context.get("available") and not horizon_reference.empty):
+            success_context = {"available": False, "warning": "no_live_hazard_layer_for_success"}
+        else:
+            from .success_surface import build_retry_success_context
+            live_rows_s = panel[panel["is_live_transition"] == True]
+            if live_rows_s.empty:
+                success_context = {"available": False, "warning": "no_open_live_transition_to_score"}
+            else:
+                live_row_s = live_rows_s.sort_values("as_of_date").tail(1).iloc[0].to_dict()
+                emp_s = empirical_horizon_probabilities_for_row(live_row_s, horizon_reference, HAZARD_HORIZONS)
+                blend_ph = (blend_context or {}).get("per_horizon") or {}
+                iso_tg = (calibration_context or {}).get("trust_gate") or {}
+                occ_p, occ_gate, occ_surface = {}, {}, {}
+                for h in (10, 20, 40, 60):
+                    bd = blend_ph.get(str(h)) or blend_ph.get(h) or {}
+                    b_prob, b_pass = bd.get("blend_probability"), bool(bd.get("gate_passed"))
+                    iso_pass = bool((iso_tg.get(str(h)) or iso_tg.get(h) or {}).get("passed"))
+                    emp_h = emp_s[h].get("cumulative_retry_probability")
+                    if b_prob is not None and b_pass:                  # Phase-7 blend: the better surface
+                        occ_p[h], occ_gate[h], occ_surface[h] = b_prob, True, "phase7_blend"
+                    else:                                              # fall back to empirical + isotonic gate
+                        occ_p[h], occ_gate[h], occ_surface[h] = emp_h, iso_pass, "empirical_isotonic"
+                success_context = build_retry_success_context(
+                    tickers_data, ticker, live_row_s, occurrence_probs=occ_p,
+                    occurrence_calibrated=occ_gate, occurrence_surface=occ_surface,
+                    config=config, model=success_model)
 
     return {
         "hazard_history": curve,
