@@ -100,6 +100,12 @@ from .success_surface import (
     build_retry_success_context,
     SUCCESS_SURFACE_VERSION,
 )
+from .adapter import (
+    to_yearline_context,
+    export_yearline_context,
+    ADAPTER_VERSION,
+    YEARLINE_CONTEXT_JSON_SCHEMA,
+)
 from .validation import (
     validate_ticker_sanity,
     validate_reference_parity,
@@ -172,6 +178,10 @@ __all__ = [
     "apply_success_live",
     "build_retry_success_context",
     "SUCCESS_SURFACE_VERSION",
+    "to_yearline_context",
+    "export_yearline_context",
+    "ADAPTER_VERSION",
+    "YEARLINE_CONTEXT_JSON_SCHEMA",
     "validate_ticker_sanity",
     "validate_reference_parity",
     "ml_feature_leakage_audit",

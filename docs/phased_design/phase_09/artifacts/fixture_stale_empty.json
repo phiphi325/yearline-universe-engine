@@ -1,0 +1,28 @@
+{
+  "as_of": "2026-01-05",
+  "ticker": "TEST",
+  "schema_version": "v13_single_ticker_statistical_context_envelope",
+  "model_stack_version": "yearline_universe_v13.1",
+  "adapter_version": "v13_8_yearline_context_adapter_v1",
+  "repair_active": false,
+  "distance_to_ma250_pct": null,
+  "required_rebound_to_ma250_pct": null,
+  "post_confirmation_trend_state": null,
+  "p_retry": {},
+  "p_retry_basis": null,
+  "gate_passed": {},
+  "days_to_touch_central": null,
+  "days_to_touch_low": null,
+  "days_to_touch_high": null,
+  "p_success": null,
+  "success_gate_passed": false,
+  "p_successful_reclaim": {
+    "10": null,
+    "20": null,
+    "40": null,
+    "60": null
+  },
+  "reference_scope": null,
+  "is_stale": true,
+  "must_not_auto_execute": true
+}
