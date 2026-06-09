@@ -122,7 +122,7 @@ def build_success_dataset(tickers_data: Mapping[str, Mapping[str, Any]],
     if not parts:
         return pd.DataFrame()
     df = pd.concat(parts, ignore_index=True)
-    keep = (["ticker", "group", "round", "transition", "from_attempt", "to_attempt",
+    keep = (["ticker", "group", "round", "transition", "from_attempt", "to_attempt", "to_date",
              "episode_key", "transition_key", "y_success"]
             + [c for c in SUCCESS_STATE_FEATURES if c in df.columns])
     keep = [c for c in dict.fromkeys(keep) if c in df.columns]

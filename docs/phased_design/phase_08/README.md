@@ -1,6 +1,6 @@
 # Phase 8 — Retry-success (Track A): RS-1 delivered
 
-**Status:** ◐ IN PROGRESS — **RS-1 (success labels + empirical base-rate estimator) DELIVERED**; RS-2/3/4 next.
+**Status:** ◐ IN PROGRESS — **RS-1 (labels + empirical baseline) + RS-2 (direct success classifier) DELIVERED**; RS-3/4 next.
 **Part of:** the planner roadmap — see [`../planner/01_retry_success_plan.md`](../planner/01_retry_success_plan.md).
 **Source analysis:** [`../../research/01_retry_success_probability_2026-06-08.md`](../../research/01_retry_success_probability_2026-06-08.md).
 **Theme:** make retry **success** (*given an attempt, does it reclaim and **hold**?*) trustworthy —
@@ -104,11 +104,59 @@ p = empirical_success_probability_for_row(ds.iloc[0].to_dict(), ref,
                                           exclude_transition_key=ds.iloc[0]["transition_key"])
 ```
 
-## 6. Decision gate → RS-2
+## 6. Decision gate → RS-2 (RS-1's bar)
 
-The bar is set: **beat AUC ≈ 0.49 / Brier ≈ 0.228** under leave-one-*ticker*-out. RS-2 builds the
+RS-1 set the bar: **beat AUC ≈ 0.49 / Brier ≈ 0.228** under leave-one-*ticker*-out. RS-2 builds the
 regularized-logistic **success classifier** on the **readiness (Phase-7 path) + cross-sectional**
-features the static buckets lack, head-to-head vs this RS-1 baseline. Honest expectation: success may
-be only weakly predictable from price-path features at this sample — RS-2 will report the lift (or its
-absence) plainly, and the dominant lever remains **more labelled attempts** (a wider/multi-sector
-universe + deeper history). Promotion (RS-4 surfacing) only if a horizon clears the trust gate.
+features the static buckets lack, head-to-head vs this RS-1 baseline.
+
+## 7. RS-2 — direct success classifier (delivered)
+
+`src/yearline_universe/success_models.py` (new): `build_success_model_table` joins the RS-1 attempts
+with **path-dynamic readiness features at the attempt's touch date** (leakage-safe ≤ date) + the
+**cross-sectional regime** + the RS-1 empirical baseline (leave-one-attempt-out); `evaluate_success_models`
+runs an **L2 logistic** under **episode-purged GroupKFold + leave-one-*ticker*-out** (reusing the Phase-7
+`generalization` harness), head-to-head vs the empirical baseline and the flat base rate.
+
+### The result — discrimination **yes**, calibration **not yet** (real universe, 162 attempts / 59 episodes)
+
+| Surface | AUC | Brier | MACE | Brier lift vs base |
+|---|---|---|---|---|
+| Empirical baseline (RS-1) | 0.490 | 0.232 | 0.185 | −0.004 |
+| Classifier — episode-purged | 0.647 | 0.243 | 0.134 | −0.015 |
+| **Classifier — leave-one-ticker-out** | **0.710** | 0.215 | 0.128 | **+0.013** |
+
+- **The classifier finds real success signal the static buckets missed.** It **beats the empirical
+  baseline on AUC** (0.71 vs 0.49) and **beats the flat base rate** under the unseen-name test
+  (Brier 0.215 < 0.228; AUC 0.71 > 0.5). Success *is* partially predictable from path/regime
+  **readiness** — the same lever that worked for *occurrence* (Phase 7).
+- **But it is not yet trustworthy as a probability.** Calibration is poor — **MACE ≈ 0.128 > the 0.10
+  gate**, reliability slope ≈ 0.62 (over-confident); episode-purged Brier is even *worse* than the base
+  rate. The classifier **ranks** well but its raw probabilities are miscalibrated.
+- **Small-sample caveats:** 162 attempts / 59 episodes / 9 tickers; the ticker-LOO AUC (0.71) exceeding
+  the episode-purged AUC (0.65) — a *negative* generalization gap (−0.064) — partly reflects larger
+  per-fold training in LOTO + small-sample variance. Treat magnitudes as indicative, not precise.
+
+**Net:** RS-2 clears RS-1's bar on **discrimination** but **would fail the trust gate on calibration**.
+That is precisely the ranker-vs-calibrated split Phase 7 hit — so the next step is **RS-3** (isotonic
+calibration + a classifier↔empirical **blend** + the gate). Surfacing stays gated until then.
+
+### Files (RS-2)
+
+- `src/yearline_universe/success_models.py` (new) — `build_success_model_table`,
+  `evaluate_success_models`, `build_and_evaluate_success_models`, `SUCCESS_MODEL_FEATURES`.
+- `src/yearline_universe/success_labels.py` — `build_success_dataset` now also keeps `to_date` (to merge
+  features at the attempt date). `__init__.py` — exports.
+- `tests/test_success_models.py` (new, +3) — full-feature structure, **signal detected on focused
+  features**, empty/single-class grace.
+- `artifacts/` — `rs2_success_classifier_headtohead.json`, `rs2_headtohead_summary.csv`.
+
+## 8. Decision gate → RS-3
+
+RS-2 proved the **signal exists** (AUC ≈ 0.65–0.71, beating both the empirical baseline and the base
+rate) but is **mis-calibrated** (MACE ≈ 0.13). RS-3 will: isotonic-recalibrate (purged OOF), **blend**
+the classifier with the empirical baseline per the Phase-7 result, and apply the **trust gate**
+(AUC ≥ 0.60, MACE ≤ 0.10, n ≥ 50). Honest expectation: calibration may bring MACE under the gate, but
+the sample is thin — RS-3 reports pass/fail plainly and **abstains** where it fails. The dominant lever
+remains **more labelled attempts** (a wider/multi-sector universe + deeper history). RS-4 surfaces a
+gated `retry_success_context` + the occurrence×success composite only where the gate passes.

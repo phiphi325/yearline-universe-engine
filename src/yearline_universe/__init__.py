@@ -76,6 +76,12 @@ from .success_labels import (
     SUCCESS_STATE_FEATURES,
     SUCCESS_PROB_POLICY,
 )
+from .success_models import (
+    build_success_model_table,
+    evaluate_success_models,
+    build_and_evaluate_success_models,
+    SUCCESS_MODEL_FEATURES,
+)
 from .validation import (
     validate_ticker_sanity,
     validate_reference_parity,
@@ -132,6 +138,10 @@ __all__ = [
     "empirical_success_probability_for_row",
     "SUCCESS_STATE_FEATURES",
     "SUCCESS_PROB_POLICY",
+    "build_success_model_table",
+    "evaluate_success_models",
+    "build_and_evaluate_success_models",
+    "SUCCESS_MODEL_FEATURES",
     "validate_ticker_sanity",
     "validate_reference_parity",
     "ml_feature_leakage_audit",
