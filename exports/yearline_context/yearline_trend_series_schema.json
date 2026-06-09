@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://option-mgmt-2026.local/schemas/yearline-trend-series/v13_8_1.schema.json",
+  "title": "YearlineTrendSeries",
+  "type": "object",
+  "required": [
+    "available",
+    "series_version",
+    "must_not_auto_execute"
+  ],
+  "properties": {
+    "available": {
+      "type": "boolean"
+    },
+    "warning": {
+      "type": "string"
+    },
+    "ticker": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "as_of": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "schema_version": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "model_stack_version": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "series_version": {
+      "type": "string"
+    },
+    "n": {
+      "type": "integer"
+    },
+    "dates": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "distance_to_ma250_pct": {
+      "type": [
+        "array",
+        "null"
+      ]
+    },
+    "drawdown_so_far_pct": {
+      "type": [
+        "array",
+        "null"
+      ]
+    },
+    "active_engine": {
+      "type": [
+        "array",
+        "null"
+      ]
+    },
+    "post_confirmation_trend_state": {
+      "type": [
+        "array",
+        "null"
+      ]
+    },
+    "trend_quality": {
+      "type": [
+        "array",
+        "null"
+      ]
+    },
+    "pullback_quality": {
+      "type": [
+        "array",
+        "null"
+      ]
+    },
+    "overextension": {
+      "type": [
+        "array",
+        "null"
+      ]
+    },
+    "deterioration": {
+      "type": [
+        "array",
+        "null"
+      ]
+    },
+    "hazard_today": {
+      "type": [
+        "array",
+        "null"
+      ]
+    },
+    "p_retry_40d": {
+      "type": [
+        "array",
+        "null"
+      ]
+    },
+    "close": {
+      "type": "array"
+    },
+    "ma20": {
+      "type": "array"
+    },
+    "ma50": {
+      "type": "array"
+    },
+    "ma250": {
+      "type": "array"
+    },
+    "must_not_auto_execute": {
+      "const": true
+    }
+  },
+  "additionalProperties": false
+}

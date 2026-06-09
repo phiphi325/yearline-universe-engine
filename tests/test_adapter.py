@@ -1,9 +1,14 @@
-"""V13.8 — YearlineContext adapter (Track B / Phase 9): contract shape, gating, version pins, staleness."""
+"""V13.8 — YearlineContext adapter (Track B / Phase 9): contract shape, gating, version pins, staleness.
+Plus V13.8.1 — the YearlineTrendSeries presentation projection (trend-plot data source)."""
+import numpy as np
+import pandas as pd
 import pytest
 
 from yearline_universe.adapter import (
     to_yearline_context, export_yearline_context, ADAPTER_VERSION,
     YEARLINE_CONTEXT_JSON_SCHEMA, YEARLINE_CONTEXT_HORIZONS,
+    to_yearline_trend_series, export_yearline_trend_series, TREND_SERIES_VERSION,
+    YEARLINE_TREND_SERIES_JSON_SCHEMA,
 )
 
 
@@ -113,3 +118,79 @@ def test_export_writes_artifact(tmp_path):
     import json
     ctx = json.load(open(p))
     _assert_schema_conformant(ctx)
+
+
+# ---------------------------------------------------------------------------
+# V13.8.1 — YearlineTrendSeries (presentation projection)
+# ---------------------------------------------------------------------------
+
+def _semantic_history(n=40):
+    idx = pd.bdate_range("2026-03-02", periods=n)
+    half = n // 2
+    return pd.DataFrame({
+        "as_of_date": idx,
+        "distance_to_ma250_pct": np.linspace(-6.0, 3.0, n),
+        "drawdown_so_far_pct": np.linspace(12.0, 1.0, n),
+        "active_engine": ["repair_retry_hazard_engine"] * half + ["post_confirmation_trend_engine"] * (n - half),
+        "post_confirmation_trend_state": [None] * half + ["healthy_trend"] * (n - half),
+        "trend_quality_score": [np.nan] * half + list(np.linspace(0.55, 0.72, n - half)),
+        "pullback_quality_score": [np.nan] * half + list(np.linspace(0.60, 0.80, n - half)),
+        "overextension_score": [np.nan] * half + list(np.linspace(0.30, 0.60, n - half)),
+        "deterioration_risk_score": [np.nan] * half + list(np.linspace(0.10, 0.05, n - half)),
+        "hazard_today_gated": list(np.linspace(0.02, 0.05, half)) + [np.nan] * (n - half),
+        "p_retry_within_40d_gated": list(np.linspace(0.6, 0.9, half)) + [np.nan] * (n - half),
+    })
+
+
+def _price_df(n=400):
+    idx = pd.bdate_range("2025-01-01", periods=n)              # spans the semantic dates (for MA reindex)
+    px = 100 * np.exp(np.cumsum(np.full(n, 0.0006)))
+    return pd.DataFrame({"Open": px, "High": px * 1.005, "Low": px * 0.995, "Close": px, "Volume": 1e6}, index=idx)
+
+
+def _assert_series_schema(s):
+    props = YEARLINE_TREND_SERIES_JSON_SCHEMA["properties"]
+    for k in YEARLINE_TREND_SERIES_JSON_SCHEMA["required"]:
+        assert k in s, f"missing {k}"
+    for k in s:
+        assert k in props, f"unexpected key {k}"
+    assert s["must_not_auto_execute"] is True
+
+
+def test_trend_series_shape_alignment_and_types():
+    s = to_yearline_trend_series(_semantic_history(40), ticker="MSFT", schema_version="v13")
+    _assert_series_schema(s)
+    assert s["available"] is True and s["n"] == 40 and len(s["dates"]) == 40
+    assert s["series_version"] == TREND_SERIES_VERSION
+    for key in ("distance_to_ma250_pct", "active_engine", "trend_quality", "hazard_today", "p_retry_40d"):
+        assert len(s[key]) == 40                              # every series aligned to dates
+    assert all(isinstance(v, float) for v in s["distance_to_ma250_pct"])
+    assert s["active_engine"][0] == "repair_retry_hazard_engine"
+
+
+def test_trend_series_nan_becomes_none():
+    s = to_yearline_trend_series(_semantic_history(40))
+    # trend_quality is NaN over the repair (first) half, finite over the trend half
+    assert s["trend_quality"][0] is None and isinstance(s["trend_quality"][-1], float)
+    # hazard is gated to the repair half ⇒ None over the trend half
+    assert isinstance(s["hazard_today"][0], float) and s["hazard_today"][-1] is None
+
+
+def test_trend_series_price_overlay_aligned():
+    s = to_yearline_trend_series(_semantic_history(40), price_df=_price_df())
+    assert "close" in s and len(s["close"]) == 40
+    assert len(s["ma250"]) == 40 and any(v is not None for v in s["ma250"])  # 250+ prior bars exist
+
+
+def test_trend_series_lookback_and_empty():
+    s = to_yearline_trend_series(_semantic_history(40), lookback_days=10)
+    assert s["n"] == 10
+    empty = to_yearline_trend_series(pd.DataFrame())
+    assert empty["available"] is False and empty["must_not_auto_execute"] is True
+
+
+def test_trend_series_export(tmp_path):
+    p = export_yearline_trend_series(_semantic_history(12), ticker="MSFT", out_dir=str(tmp_path))
+    import json
+    s = json.load(open(p))
+    assert s["available"] is True and s["n"] == 12

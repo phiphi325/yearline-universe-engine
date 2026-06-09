@@ -27,10 +27,16 @@ __all__ = [
     "to_yearline_context",
     "export_yearline_context",
     "YEARLINE_CONTEXT_JSON_SCHEMA",
+    # V13.8.1 — presentation series (the trend-plot data source; NOT an engine decision input)
+    "TREND_SERIES_VERSION",
+    "to_yearline_trend_series",
+    "export_yearline_trend_series",
+    "YEARLINE_TREND_SERIES_JSON_SCHEMA",
 ]
 
 ADAPTER_VERSION = "v13_8_yearline_context_adapter_v1"
 YEARLINE_CONTEXT_HORIZONS = (10, 20, 40, 60)
+TREND_SERIES_VERSION = "v13_8_1_yearline_trend_series_v1"
 
 
 def _f(x):
@@ -204,6 +210,130 @@ YEARLINE_CONTEXT_JSON_SCHEMA = {
         "p_successful_reclaim": {"type": "object", "additionalProperties": {"type": ["number", "null"]}},
         "reference_scope": {"type": ["string", "null"]},
         "is_stale": {"type": "boolean"},
+        "must_not_auto_execute": {"const": True},
+    },
+    "additionalProperties": False,
+}
+
+
+# ---------------------------------------------------------------------------
+# V13.8.1 — YearlineTrendSeries (presentation artifact for the trend plot)
+# ---------------------------------------------------------------------------
+# A thin, deterministic, READ-ONLY time-series projection over the engine's existing per-day history
+# (``semantic_history`` + optional ``price_df``). It feeds the option-mgmt **Today-screen trend plot**
+# (OM-Y3) — it is NOT the gated decision contract and never enters the replay hash. Kept separate so the
+# heavy chart payload never bloats or churns the lean scalar ``YearlineContext``. See
+# docs/phased_design/phase_09/ux_trend_plot_support_analysis.md.
+
+# out_key -> (semantic_history column, is_numeric)
+_TREND_SERIES_FIELDS = {
+    "distance_to_ma250_pct": ("distance_to_ma250_pct", True),   # the headline trend line (0 = yearline)
+    "drawdown_so_far_pct": ("drawdown_so_far_pct", True),
+    "active_engine": ("active_engine", False),                  # regime band shading
+    "post_confirmation_trend_state": ("post_confirmation_trend_state", False),
+    "trend_quality": ("trend_quality_score", True),
+    "pullback_quality": ("pullback_quality_score", True),
+    "overextension": ("overextension_score", True),
+    "deterioration": ("deterioration_risk_score", True),
+    "hazard_today": ("hazard_today_gated", True),               # gated → null off the repair engine
+    "p_retry_40d": ("p_retry_within_40d_gated", True),
+}
+
+
+def _col_list(df, col: str, numeric: bool) -> list | None:
+    if col not in df.columns:
+        return None
+    out = []
+    for v in df[col].tolist():
+        if v is None or (isinstance(v, float) and v != v):
+            out.append(None)
+        elif numeric:
+            out.append(_r(v))
+        else:
+            out.append(str(v))
+    return out
+
+
+def to_yearline_trend_series(semantic_history, *, ticker: str | None = None,
+                             schema_version: str | None = None, model_stack_version: str | None = None,
+                             price_df=None, lookback_days: int | None = None, config=None) -> dict[str, Any]:
+    """Project per-day ``semantic_history`` (+ optional ``price_df``) onto the trend-plot series contract."""
+    import pandas as pd
+
+    if semantic_history is None or getattr(semantic_history, "empty", True) or "as_of_date" not in getattr(semantic_history, "columns", []):
+        return {"available": False, "warning": "no_semantic_history", "ticker": ticker,
+                "series_version": TREND_SERIES_VERSION, "must_not_auto_execute": True}
+
+    h = semantic_history.copy()
+    h["as_of_date"] = pd.to_datetime(h["as_of_date"])
+    h = h.sort_values("as_of_date")
+    if lookback_days:
+        h = h.tail(int(lookback_days))
+    dates = [str(d.date()) for d in h["as_of_date"]]
+
+    out: dict[str, Any] = {
+        "available": True, "ticker": ticker, "as_of": (dates[-1] if dates else None),
+        "schema_version": schema_version, "model_stack_version": model_stack_version,
+        "series_version": TREND_SERIES_VERSION, "n": len(dates), "dates": dates,
+    }
+    for out_key, (col, numeric) in _TREND_SERIES_FIELDS.items():
+        out[out_key] = _col_list(h, col, numeric)
+
+    # Optional price + MA overlays (aligned to the series dates).
+    if price_df is not None and not getattr(price_df, "empty", True) and "Close" in price_df.columns:
+        p = price_df.copy()
+        p.index = pd.to_datetime(p.index).normalize()
+        close = p["Close"].astype(float)
+        ma_len = int(getattr(config, "ma_len", 250)) if config is not None else 250
+        idx = pd.to_datetime(dates).normalize()
+        cols = {"close": close, "ma20": close.rolling(20).mean(),
+                "ma50": close.rolling(50).mean(), "ma250": close.rolling(ma_len).mean()}
+        for k, s in cols.items():
+            aligned = s.reindex(idx)
+            out[k] = [None if pd.isna(v) else _r(v) for v in aligned.tolist()]
+
+    out["must_not_auto_execute"] = True
+    return out
+
+
+def export_yearline_trend_series(semantic_history, out_dir: str = "exports", **kwargs) -> str:
+    """Write the YearlineTrendSeries artifact and return its path."""
+    s = to_yearline_trend_series(semantic_history, **kwargs)
+    os.makedirs(out_dir, exist_ok=True)
+    path = os.path.join(out_dir, f"yearline_trend_series_{s.get('ticker') or 'UNKNOWN'}_{s.get('as_of') or 'NA'}.json")
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(s, fh, indent=2, default=str)
+    return path
+
+
+YEARLINE_TREND_SERIES_JSON_SCHEMA = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://option-mgmt-2026.local/schemas/yearline-trend-series/v13_8_1.schema.json",
+    "title": "YearlineTrendSeries",
+    "type": "object",
+    "required": ["available", "series_version", "must_not_auto_execute"],
+    "properties": {
+        "available": {"type": "boolean"},
+        "warning": {"type": "string"},
+        "ticker": {"type": ["string", "null"]},
+        "as_of": {"type": ["string", "null"]},
+        "schema_version": {"type": ["string", "null"]},
+        "model_stack_version": {"type": ["string", "null"]},
+        "series_version": {"type": "string"},
+        "n": {"type": "integer"},
+        "dates": {"type": "array", "items": {"type": "string"}},
+        "distance_to_ma250_pct": {"type": ["array", "null"]},
+        "drawdown_so_far_pct": {"type": ["array", "null"]},
+        "active_engine": {"type": ["array", "null"]},
+        "post_confirmation_trend_state": {"type": ["array", "null"]},
+        "trend_quality": {"type": ["array", "null"]},
+        "pullback_quality": {"type": ["array", "null"]},
+        "overextension": {"type": ["array", "null"]},
+        "deterioration": {"type": ["array", "null"]},
+        "hazard_today": {"type": ["array", "null"]},
+        "p_retry_40d": {"type": ["array", "null"]},
+        "close": {"type": "array"},
+        "ma20": {"type": "array"}, "ma50": {"type": "array"}, "ma250": {"type": "array"},
         "must_not_auto_execute": {"const": True},
     },
     "additionalProperties": False,

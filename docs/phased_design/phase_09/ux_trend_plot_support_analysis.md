@@ -83,15 +83,18 @@ Even without the series, `YearlineContext` already powers a useful **current-sta
 
 That card is genuinely useful for OM-Y3; the **line plot** is the increment that needs §3.
 
-## 5. Recommendation
+## 5. Recommendation — and what was delivered
 
 1. **Keep `YearlineContext` scalar** — it is correct as the engine's gated decision contract.
-2. **Add `YearlineTrendSeries`** (a small **V13.8.1** presentation adapter in this repo) — the thin
-   series export for the chart; ship it as the data source for OM-Y3's panel/plot. (Offered as the next
-   Phase 9 follow-up; ~one module + a fixture + a test, no modelling.)
-3. **In option-mgmt:** OM-Y3 renders the current-state card from `YearlineContext` **now**, and the trend
-   line plot from `YearlineTrendSeries` once §2 lands. Both are read-only (the `DailyDecision` stays
-   byte-identical); only OM-Y4 lets the (scalar, gated) context *influence* a decision.
+2. ✅ **`YearlineTrendSeries` DELIVERED (V13.8.1).** `adapter.to_yearline_trend_series(semantic_history,
+   price_df=…)` emits the §3 series (thin, deterministic, read-only; `series_version =
+   v13_8_1_yearline_trend_series_v1`), with `export_yearline_trend_series()`, a JSON schema, and a real
+   180-day MSFT fixture (`exports/yearline_context/fixture_msft_trend_series.json`; also in
+   `phase_09/artifacts/`) — `tests/test_adapter.py` covers shape/alignment, NaN→None, the gated series,
+   the price overlay, lookback, and export. No new modelling.
+3. **In option-mgmt:** OM-Y3 renders the current-state card from `YearlineContext` **and** the trend line
+   plot from `YearlineTrendSeries`. Both are read-only (the `DailyDecision` stays byte-identical); only
+   OM-Y4 lets the (scalar, gated) context *influence* a decision.
 
 *Companion: `option_mgmt_handoff.md` (the cross-repo build guide) references this for the OM-Y3 panel.
 Educational research only; not financial advice; every surface is `must_not_auto_execute`.*

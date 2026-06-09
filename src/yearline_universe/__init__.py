@@ -105,6 +105,10 @@ from .adapter import (
     export_yearline_context,
     ADAPTER_VERSION,
     YEARLINE_CONTEXT_JSON_SCHEMA,
+    to_yearline_trend_series,
+    export_yearline_trend_series,
+    TREND_SERIES_VERSION,
+    YEARLINE_TREND_SERIES_JSON_SCHEMA,
 )
 from .validation import (
     validate_ticker_sanity,
@@ -182,6 +186,10 @@ __all__ = [
     "export_yearline_context",
     "ADAPTER_VERSION",
     "YEARLINE_CONTEXT_JSON_SCHEMA",
+    "to_yearline_trend_series",
+    "export_yearline_trend_series",
+    "TREND_SERIES_VERSION",
+    "YEARLINE_TREND_SERIES_JSON_SCHEMA",
     "validate_ticker_sanity",
     "validate_reference_parity",
     "ml_feature_leakage_audit",
