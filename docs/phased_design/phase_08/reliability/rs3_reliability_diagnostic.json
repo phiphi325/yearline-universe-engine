@@ -1,0 +1,126 @@
+{
+  "available": true,
+  "n": 162,
+  "base_rate": 0.3519,
+  "blend_weight_classifier": 0.5,
+  "per_surface": {
+    "classifier_raw": {
+      "auc": 0.7101086048454468,
+      "mace": 0.1276387617687997,
+      "std": 0.2667,
+      "mean": 0.4078,
+      "p_gt_0.7": 32,
+      "p_lt_0.3": 67,
+      "reliability": 0.02389,
+      "resolution": 0.04055,
+      "uncertainty": 0.22805,
+      "brier": 0.21479,
+      "reliability_diagram": {
+        "bin_pred": [
+          0.0986,
+          0.2979,
+          0.4908,
+          0.714,
+          0.8739
+        ],
+        "bin_true": [
+          0.087,
+          0.3421,
+          0.4444,
+          0.5,
+          0.6875
+        ],
+        "bin_count": [
+          46,
+          38,
+          36,
+          26,
+          16
+        ]
+      }
+    },
+    "empirical_baseline": {
+      "auc": 0.4895572263993317,
+      "mace": 0.18526280309990492,
+      "std": 0.0635,
+      "mean": 0.3412,
+      "p_gt_0.7": 0,
+      "p_lt_0.3": 60,
+      "reliability": 0.0434,
+      "resolution": 0.03716,
+      "uncertainty": 0.22805,
+      "brier": 0.23201,
+      "reliability_diagram": {
+        "bin_pred": [
+          0.3171,
+          0.4283
+        ],
+        "bin_true": [
+          0.4252,
+          0.0857
+        ],
+        "bin_count": [
+          127,
+          35
+        ]
+      }
+    },
+    "blend": {
+      "auc": 0.7017543859649122,
+      "mace": 0.03556755582642802,
+      "std": 0.1402,
+      "mean": 0.3745,
+      "p_gt_0.7": 0,
+      "p_lt_0.3": 59,
+      "reliability": 0.00163,
+      "resolution": 0.02556,
+      "uncertainty": 0.22805,
+      "brier": 0.20436,
+      "reliability_diagram": {
+        "bin_pred": [
+          0.1707,
+          0.2869,
+          0.4983,
+          0.622
+        ],
+        "bin_true": [
+          0.0714,
+          0.2532,
+          0.5085,
+          0.6
+        ],
+        "bin_count": [
+          14,
+          79,
+          59,
+          10
+        ]
+      }
+    }
+  },
+  "shrinkage": {
+    "base_rate": 0.3519,
+    "var_raw": 0.07112,
+    "var_blend": 0.01964,
+    "variance_shrinkage_index": 0.724,
+    "mace_raw": 0.1276387617687997,
+    "mace_blend": 0.03556755582642802,
+    "mace_pure_shrink_to_base": 0.04770294183225249,
+    "mace_half_shrink_to_base": 0.07406738375174697,
+    "total_mace_gain": 0.0921,
+    "gain_from_shrinkage": 0.0799,
+    "gain_from_empirical_information": 0.0121,
+    "fraction_of_gain_from_shrinkage": 0.868,
+    "resolution_raw": 0.04055,
+    "resolution_blend": 0.02556,
+    "resolution_lost_to_shrinkage": 0.01499,
+    "mean_abs_pull_of_raw_extremes": 0.1393,
+    "interpretation": "The blend's low MACE is largely base-rate shrinkage: it matches the raw classifier shrunk toward the base rate by the same variance factor (mace_pure_shrink_to_base \u2248 mace_blend), so fraction_of_gain_from_shrinkage near 1.0 means the empirical anchor added little beyond pulling predictions to center. It trades sharpness (resolution_lost_to_shrinkage) for calibration \u2014 honest and safe for sizing, but not a sharper model."
+  },
+  "disclaimers": [
+    "All surfaces are leave-one-ticker-out OOF predictions (the deployment-relevant CV).",
+    "Brier = reliability \u2212 resolution + uncertainty (Murphy); resolution = informative sharpness.",
+    "pure_shrink_to_base = base_rate + s\u00b7(raw \u2212 base_rate) with s matching the blend's variance.",
+    "Educational research only; not financial advice."
+  ]
+}

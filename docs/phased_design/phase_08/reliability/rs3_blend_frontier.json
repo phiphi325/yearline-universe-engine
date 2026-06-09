@@ -1,0 +1,148 @@
+{
+  "n": 162,
+  "base_rate": 0.3519,
+  "gate_max_mace": 0.1,
+  "var_raw": 0.07112,
+  "auc_raw": 0.7101086048454468,
+  "frontier": [
+    {
+      "surface": "empirical (w=0.0)",
+      "auc": 0.4895572263993317,
+      "mace": 0.18526280309990492,
+      "resolution": 0.03716,
+      "std": 0.0635,
+      "var": 0.00404,
+      "vsi": 0.943,
+      "n": 162,
+      "gate_pass": false
+    },
+    {
+      "surface": "blend w=0.5",
+      "auc": 0.7017543859649122,
+      "mace": 0.03556755582642802,
+      "resolution": 0.02556,
+      "std": 0.1402,
+      "var": 0.01964,
+      "vsi": 0.724,
+      "n": 162,
+      "gate_pass": true
+    },
+    {
+      "surface": "blend w=0.6",
+      "auc": 0.7012531328320801,
+      "mace": 0.054197853683814134,
+      "resolution": 0.03085,
+      "std": 0.1645,
+      "var": 0.02707,
+      "vsi": 0.619,
+      "n": 162,
+      "gate_pass": true
+    },
+    {
+      "surface": "blend w=0.7",
+      "auc": 0.7037593984962405,
+      "mace": 0.0823950923575523,
+      "resolution": 0.035,
+      "std": 0.1896,
+      "var": 0.03593,
+      "vsi": 0.495,
+      "n": 162,
+      "gate_pass": true
+    },
+    {
+      "surface": "blend w=0.8",
+      "auc": 0.7077694235588972,
+      "mace": 0.10657424371822506,
+      "resolution": 0.0425,
+      "std": 0.215,
+      "var": 0.04622,
+      "vsi": 0.35,
+      "n": 162,
+      "gate_pass": false
+    },
+    {
+      "surface": "blend w=0.9",
+      "auc": 0.7099415204678362,
+      "mace": 0.11553356704809298,
+      "resolution": 0.03738,
+      "std": 0.2407,
+      "var": 0.05795,
+      "vsi": 0.185,
+      "n": 162,
+      "gate_pass": false
+    },
+    {
+      "surface": "raw classifier (w=1.0)",
+      "auc": 0.7101086048454468,
+      "mace": 0.1276387617687997,
+      "resolution": 0.04055,
+      "std": 0.2667,
+      "var": 0.07112,
+      "vsi": 0.0,
+      "n": 162,
+      "gate_pass": false
+    },
+    {
+      "surface": "isotonic(raw)",
+      "auc": 0.6789473684210526,
+      "mace": 0.10295001113383333,
+      "resolution": 0.05096,
+      "std": 0.2218,
+      "var": 0.04921,
+      "vsi": 0.308,
+      "n": 162,
+      "gate_pass": false
+    },
+    {
+      "surface": "isotonic(blend 0.5)",
+      "auc": 0.6446950710108604,
+      "mace": 0.09623336716993496,
+      "resolution": 0.02641,
+      "std": 0.2216,
+      "var": 0.04912,
+      "vsi": 0.309,
+      "n": 162,
+      "gate_pass": true
+    }
+  ],
+  "bootstrap_mace": {
+    "blend w=0.5": {
+      "mace_mean": 0.077,
+      "mace_p05": 0.0395,
+      "mace_p95": 0.1171,
+      "p_under_gate": 0.837
+    },
+    "blend w=0.7": {
+      "mace_mean": 0.1122,
+      "mace_p05": 0.0676,
+      "mace_p95": 0.1611,
+      "p_under_gate": 0.352
+    },
+    "blend w=0.8": {
+      "mace_mean": 0.127,
+      "mace_p05": 0.08,
+      "mace_p95": 0.1802,
+      "p_under_gate": 0.189
+    },
+    "raw classifier (w=1.0)": {
+      "mace_mean": 0.1541,
+      "mace_p05": 0.1035,
+      "mace_p95": 0.209,
+      "p_under_gate": 0.04
+    },
+    "isotonic(raw)": {
+      "mace_mean": 0.1331,
+      "mace_p05": 0.0718,
+      "mace_p95": 0.2019,
+      "p_under_gate": 0.191
+    }
+  },
+  "sharpest_gate_passing_pointwise": "blend w=0.7",
+  "surfaces_with_p95_under_gate": [],
+  "notes": [
+    "All surfaces are leave-one-ticker-out OOF; resolution = Murphy informative sharpness.",
+    "AUC is rank-based: a monotone recalibration (isotonic) preserves it; a flat-anchor blend barely changes it (empirical AUC ~0.49), so the 'alpha' is NOT what shrinkage destroys.",
+    "gate_pass is pointwise MACE<=0.10; p95<=0.10 is the stricter 'with margin on n=162' reading.",
+    "Educational research only; not financial advice."
+  ]
+}

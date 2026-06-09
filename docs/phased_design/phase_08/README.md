@@ -1,6 +1,6 @@
 # Phase 8 — Retry-success (Track A): RS-1 delivered
 
-**Status:** ◐ IN PROGRESS — **RS-1 (labels + empirical baseline) + RS-2 (direct success classifier) DELIVERED**; RS-3/4 next.
+**Status:** ◐ IN PROGRESS — **RS-1 (labels + baseline) + RS-2 (classifier) + RS-3 (calibrate + blend + gate) DELIVERED** — the blend **clears the trust gate**; RS-4 (gated surfacing) next.
 **Part of:** the planner roadmap — see [`../planner/01_retry_success_plan.md`](../planner/01_retry_success_plan.md).
 **Source analysis:** [`../../research/01_retry_success_probability_2026-06-08.md`](../../research/01_retry_success_probability_2026-06-08.md).
 **Theme:** make retry **success** (*given an attempt, does it reclaim and **hold**?*) trustworthy —
@@ -154,9 +154,76 @@ calibration + a classifier↔empirical **blend** + the gate). Surfacing stays ga
 ## 8. Decision gate → RS-3
 
 RS-2 proved the **signal exists** (AUC ≈ 0.65–0.71, beating both the empirical baseline and the base
-rate) but is **mis-calibrated** (MACE ≈ 0.13). RS-3 will: isotonic-recalibrate (purged OOF), **blend**
-the classifier with the empirical baseline per the Phase-7 result, and apply the **trust gate**
-(AUC ≥ 0.60, MACE ≤ 0.10, n ≥ 50). Honest expectation: calibration may bring MACE under the gate, but
-the sample is thin — RS-3 reports pass/fail plainly and **abstains** where it fails. The dominant lever
-remains **more labelled attempts** (a wider/multi-sector universe + deeper history). RS-4 surfaces a
-gated `retry_success_context` + the occurrence×success composite only where the gate passes.
+rate) but is **mis-calibrated** (MACE ≈ 0.13). RS-3 isotonic-recalibrates (purged OOF), **blends** the
+classifier with the empirical baseline (Phase-7 lever), and applies the **trust gate** (AUC ≥ 0.60,
+MACE ≤ 0.10, n ≥ 50), abstaining where it fails.
+
+## 9. RS-3 — calibration + blend + trust gate (delivered) — **gate PASSES**
+
+`src/yearline_universe/success_calibration.py` (new): `evaluate_success_calibration_gate` produces the
+classifier's leave-one-ticker-out predictions, then computes five candidate surfaces and gates each with
+**honest out-of-fold isotonic** MACE (a second episode-purged GroupKFold — not in-sample-optimistic):
+
+| Surface | AUC | MACE | reliability slope | gate |
+|---|---|---|---|---|
+| classifier (raw) | 0.710 | 0.128 | 0.62 | ✗ MACE |
+| classifier (isotonic) | 0.679 | 0.103 | 0.66 | ✗ MACE (*just* misses) |
+| empirical baseline (RS-1) | 0.490 | 0.185 | 0.02 | ✗ AUC + MACE |
+| **blend (0.5·clf + 0.5·emp)** | **0.702** | **0.036** | 1.12 | **✅ PASS** |
+| blend (isotonic) | 0.645 | 0.096 | 0.50 | ✅ |
+
+**Recommended surface = the blend** (the gate-passing surface with the highest AUC): **AUC 0.702,
+out-of-fold MACE 0.036** under leave-one-ticker-out. The classifier↔empirical blend keeps almost all of
+the classifier's discrimination **and** is well-calibrated — the Phase-7 result, reproduced for success.
+
+**Reading it honestly:**
+- The blend works because the components err oppositely: the classifier is **over-confident** (slope
+  0.62) and discriminating; the empirical baseline is nearly **flat** (slope 0.02, ≈ the base rate).
+  Averaging tempers the classifier's spread toward the base rate → well-calibrated (slope 1.12). That is
+  genuine (out-of-fold), but the very low MACE **partly reflects predictions clustering near the base
+  rate** — a "safe" calibration, not a precision claim.
+- **Isotonic alone *just* missed** (MACE 0.103); applying isotonic *on top of* the blend made it **worse**
+  (the blend is already calibrated — don't over-process it). So the **raw blend** is the recommended surface.
+- **Small sample** (162 attempts / 59 episodes / 9 tickers): binned MACE is noisy and the PASS is
+  high-variance. Treat as "**clears the gate on current data**," to be **re-validated walk-forward** as the
+  universe/history grow (per `../planner/04_macro_factors_feature_analysis.md`'s period-validation point).
+
+**Files (RS-3):** `src/yearline_universe/success_calibration.py` (new) +
+`__init__.py` exports; `tests/test_success_calibration.py` (new, +2);
+`artifacts/rs3_calibration_gate.json`, `artifacts/rs3_gate_summary.csv`.
+
+### 9.1 Reliability deep-dive — how much of the 0.036 is *true calibration* vs. *base-rate shrinkage*?
+
+The §9 caveat ("the low MACE partly reflects predictions clustering near the base rate") deserved a
+number, not a hand-wave. The RS-3 **reliability diagnostic** (`success_reliability.py` + the runnable
+`reliability/` folder) decomposes the blend's calibration win on the **same** leave-one-ticker-out
+surfaces, via a Brier/Murphy split, a variance-shrinkage index, and a *pure-shrinkage counterfactual*
+(shrink the raw classifier toward the base rate by the same variance factor, using **no** empirical info).
+
+**The answer: ~87% of the blend's MACE gain is base-rate shrinkage, only ~13% is genuine empirical
+information.**
+
+| Quantity | Value |
+|---|---|
+| total MACE gain (raw 0.128 → blend 0.036) | **0.0921** |
+| gain reproduced by pure shrinkage (no empirical info) | **0.0799 (86.8%)** |
+| gain from the empirical anchor's actual information | **0.0121 (13.2%)** |
+| variance-shrinkage index `1 − var(blend)/var(raw)` | **0.724** |
+| resolution (sharpness) lost: 0.0406 → 0.0256 | **−0.0150** |
+
+So the blend is **calibrated-by-shrinkage**: honest and safe for sizing (a "0.55" is genuinely
+above-base-rate), but **less sharp** than the raw classifier and intentionally under-confident at the
+extremes — it never predicts above ~0.62 or below ~0.17. The upgrade path is therefore **a sharper raw
+classifier (better features / more episodes)**, not more calibration tuning — re-tuning the blend weight
+cannot recover more than the 0.012 the empirical anchor's information is worth. Full method, figures, and
+reading-for-RS-4 in **[`reliability/README.md`](reliability/README.md)**.
+
+## 10. Decision gate → RS-4
+
+The success probability now has a **gate-passing surface** (the blend: AUC 0.702 / MACE 0.036 under
+leave-one-ticker-out). RS-4 may therefore surface it — the same way Phase 7 surfaced the occurrence
+blend: an **opt-in, additive, gated** `retry_success_context` block (the success analog of
+`retry_hazard_context`) attached **only where the gate passes**, plus the
+`P(successful reclaim within H) = P(retry ≤ H) × P(success │ retry)` composite **only where both gates
+pass**. Default off ⇒ envelope byte-identical. The standing caveat (thin sample; re-validate
+walk-forward; the dominant lever is more labelled attempts) travels with it.
