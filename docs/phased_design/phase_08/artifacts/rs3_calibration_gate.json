@@ -1,0 +1,92 @@
+{
+  "available": true,
+  "version": "v13_phase8_success_calibration_gate",
+  "n": 162,
+  "n_tickers": 9,
+  "n_episodes": 59,
+  "base_rate": 0.35185185185185186,
+  "cv": "leave_one_ticker_out + episode-purged OOF isotonic(k<=5)",
+  "blend_weight_classifier": 0.5,
+  "gate_thresholds": {
+    "min_auc": 0.6,
+    "max_mace": 0.1,
+    "min_n": 50
+  },
+  "surfaces": {
+    "classifier_raw": {
+      "auc": 0.7101086048454468,
+      "mace": 0.1276387617687997,
+      "ece": 0.1305170534564755,
+      "reliability_slope": 0.6152549524240696,
+      "brier": 0.2147939968482347,
+      "n": 162,
+      "gate": {
+        "passed": false,
+        "fail_reasons": [
+          "mace_above_max"
+        ]
+      }
+    },
+    "classifier_isotonic": {
+      "auc": 0.6789473684210526,
+      "mace": 0.10295001113383333,
+      "ece": 0.10315120732502497,
+      "reliability_slope": 0.6595162371590803,
+      "brier": 0.21236021901107424,
+      "n": 162,
+      "gate": {
+        "passed": false,
+        "fail_reasons": [
+          "mace_above_max"
+        ]
+      }
+    },
+    "empirical_baseline": {
+      "auc": 0.4895572263993317,
+      "mace": 0.18526280309990492,
+      "ece": 0.16199445078821595,
+      "reliability_slope": 0.02420360009180143,
+      "brier": 0.2320095658874514,
+      "n": 162,
+      "gate": {
+        "passed": false,
+        "fail_reasons": [
+          "auc_below_min",
+          "mace_above_max"
+        ]
+      }
+    },
+    "blend": {
+      "auc": 0.7017543859649122,
+      "mace": 0.03556755582642802,
+      "ece": 0.03013166926710679,
+      "reliability_slope": 1.116203310160846,
+      "brier": 0.20435578493771708,
+      "n": 162,
+      "gate": {
+        "passed": true,
+        "fail_reasons": []
+      }
+    },
+    "blend_isotonic": {
+      "auc": 0.6446950710108604,
+      "mace": 0.09623336716993496,
+      "ece": 0.1288153214508127,
+      "reliability_slope": 0.5002738130973788,
+      "brier": 0.22814817314665098,
+      "n": 162,
+      "gate": {
+        "passed": true,
+        "fail_reasons": []
+      }
+    }
+  },
+  "recommended_surface": "blend",
+  "gate_passed": true,
+  "disclaimers": [
+    "MACE is honest out-of-fold isotonic (episode-purged), not in-sample-optimistic.",
+    "recommended_surface = the gate-passing surface with the highest AUC; None \u21d2 abstain (not yet).",
+    "Isotonic is monotone \u21d2 it changes calibration (MACE), not discrimination (AUC).",
+    "Capability-before-consumer; RS-4 surfaces only a gate-passing surface. Educational research only."
+  ]
+}

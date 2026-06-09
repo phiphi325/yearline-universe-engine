@@ -82,6 +82,18 @@ from .success_models import (
     build_and_evaluate_success_models,
     SUCCESS_MODEL_FEATURES,
 )
+from .success_calibration import (
+    success_oof_surfaces,
+    evaluate_success_calibration_gate,
+    build_and_evaluate_success_calibration,
+    SUCCESS_CALIBRATION_VERSION,
+)
+from .success_reliability import (
+    reliability_curve,
+    brier_decomposition,
+    success_reliability_diagnostic,
+    build_success_reliability_diagnostic,
+)
 from .validation import (
     validate_ticker_sanity,
     validate_reference_parity,
@@ -142,6 +154,14 @@ __all__ = [
     "evaluate_success_models",
     "build_and_evaluate_success_models",
     "SUCCESS_MODEL_FEATURES",
+    "success_oof_surfaces",
+    "evaluate_success_calibration_gate",
+    "build_and_evaluate_success_calibration",
+    "SUCCESS_CALIBRATION_VERSION",
+    "reliability_curve",
+    "brier_decomposition",
+    "success_reliability_diagnostic",
+    "build_success_reliability_diagnostic",
     "validate_ticker_sanity",
     "validate_reference_parity",
     "ml_feature_leakage_audit",
