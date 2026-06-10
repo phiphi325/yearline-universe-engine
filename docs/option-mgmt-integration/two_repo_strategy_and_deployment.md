@@ -76,11 +76,13 @@ It has no request path; it runs nightly, pools the universe, and emits the MSFT 
 - **Where:** simplest for a solo maintainer → a **GitHub Actions scheduled workflow** in this repo
   (no infra to run; already on GitHub). Alternatives as scale grows: a Cloud Run / Fly **scheduled job**
   (container). It needs a fresh price cache → the nightly job also does the data pull (yearline already
-  has incremental-cache + staleness flags). **Data source = a keyless provider chain** (`yfinance` → Yahoo
-  v8 `yahoo_chart`; `src/yearline_universe/data_loader.py`) — **no API key**. Caveat: Yahoo throttles
-  datacenter IPs, so a GitHub-hosted runner may intermittently get blocked; mitigate with the built-in
-  fallback + `curl_cffi` impersonation + retry, a **self-hosted runner**, or (only then) a paid provider
-  with a key. Detail: `phase_09/option_mgmt_handoff.md` §10.1.
+  has incremental-cache + staleness flags). **Data source:** the default/CI path is a **keyless** chain
+  (`cache → yfinance → yahoo_chart`), but the **cron uses Tiingo** (`--provider tiingo`, keyed via
+  `TIINGO_API_KEY`; **implemented V13.9**) because Yahoo throttles datacenter IPs and GitHub-hosted runners
+  share them. Tiingo is authenticated (not IP-scraped) with **adjusted** EOD free; it no-ops without a key so
+  CI stays keyless. Full reference (Tiingo impl, AV/Polygon/EOD alternatives, the parity check):
+  [`../reference/data_providers.md`](../reference/data_providers.md); deployment detail:
+  `phase_09/option_mgmt_handoff.md` §10.1.
 - **Handoff store (where the envelope lands):**
 
   | Store | Pros | Cons |
@@ -101,12 +103,12 @@ It has no request path; it runs nightly, pools the universe, and emits the MSFT 
   prerequisite). Gate the cron behind: **idempotent publish** (key by `{ticker}_{as_of}`),
   **market-calendar awareness** (no-new-bar ⇒ `available:false`, not a half build), **secrets + cost** (the
   pooled-universe data pull), and the rule that the **nightly job never bumps
-  `adapter_version`/`series_version`** (schedule = *data* freshness only). **Status (V13.8.4):** the
-  workflow is **promoted & active (manual)** at `.github/workflows/yearline_nightly.yml`
-  (`workflow_dispatch`-first; `schedule:` commented pending a `DATA_API_KEY` secret + a
-  `scripts/run_nightly.py` entrypoint), and CI (`.github/workflows/ci.yml`) runs the full suite + the
-  contract validator on push/PR. OM-Y2 is verified on live Postgres, so only those two operational items
-  remain before the cron. Full checklist: `phase_09/option_mgmt_handoff.md` §10.
+  `adapter_version`/`series_version`** (schedule = *data* freshness only). **Status (V13.9):** the workflow is
+  **active (manual)** at `.github/workflows/yearline_nightly.yml` (`workflow_dispatch`-first), CI
+  (`.github/workflows/ci.yml`) runs the full suite + contract validator on push/PR, and the producer
+  (`scripts/run_nightly.py` + the **Tiingo** provider + `scripts/parity_check.py`) is shipped. OM-Y2 is live on
+  Postgres. **The only operational items left before the cron:** set the `TIINGO_API_KEY` secret, run
+  `parity_check.py` once, then uncomment `schedule:`. Full checklist: `phase_09/option_mgmt_handoff.md` §10.
 
 ### option-mgmt — already specced
 web → **Vercel**; api → **Fly.io**; db → **Neon Postgres**; `docker-compose` for local; Redis cache in

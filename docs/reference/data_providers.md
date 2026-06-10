@@ -1,11 +1,18 @@
-# Reference — Price data providers (and adopting a paid one: Alpha Vantage)
+# Reference — Price data providers (Tiingo implemented; paid alternatives)
 
-How this engine sources OHLCV today, **why** you'd move to a paid provider, and **exactly how** to wire one
-in — with **Alpha Vantage** as the worked example (the planned choice) plus honest tradeoffs vs Polygon /
-Tiingo / EOD Historical Data.
+How this engine sources OHLCV, **why** the nightly producer uses a keyed provider, and **exactly how** the
+provider system works — with **Tiingo** as the **implemented** choice (V13.9, `_load_from_tiingo`) plus honest
+tradeoffs vs Alpha Vantage / Polygon / EOD Historical Data for the paid-alternative case.
 
 > Educational research only; not financial advice. The data layer is `src/yearline_universe/data_loader.py`.
 > **Pricing/limits below drift — always confirm against each vendor's current pricing page before buying.**
+
+> **Status (V13.9): Tiingo is now the implemented provider.** After the head-to-head (§7), **Tiingo** was
+> chosen over Alpha Vantage premium — it returns **adjusted close on the free tier** and covers a ~9-ticker
+> nightly with huge headroom, where AV's adjusted endpoint is premium (~$50/mo). Shipped: `_load_from_tiingo`
+> in `data_loader.py` (keyed via `TIINGO_API_KEY`), `scripts/run_nightly.py` (the producer), and
+> `scripts/parity_check.py` (the migration safety gate). The **Alpha Vantage** sections below remain as the
+> paid-alternative reference (and the throttle/adjusted-endpoint caveats generalize).
 
 ---
 
@@ -17,12 +24,14 @@ Tiingo / EOD Historical Data.
 - **A paid provider fixes that** (authenticated REST API, not IP-scraped) and gives you an SLA + cleaner
   adjusted data. The cost is a key, a small code addition, and a **parity check** so you don't silently change
   the model's inputs.
-- **The one caveat that decides your Alpha Vantage plan:** the engine needs **split/dividend-adjusted close**
-  (it ports yfinance `auto_adjust=True`). Alpha Vantage's **adjusted** endpoint (`TIME_SERIES_DAILY_ADJUSTED`)
-  is **premium-gated**; the **free** tier returns **raw** `TIME_SERIES_DAILY` only. So "Alpha Vantage done
-  correctly" ⇒ **the premium plan** (or a fragile manual-adjustment step — not recommended). See §6.
-- For *adjusted daily EOD on a handful of tickers*, **Tiingo** or **EOD Historical Data** are often cheaper
-  than AV premium (§7). If you still want AV, §5–§6 are your build guide.
+- **The caveat that drove the choice:** the engine needs **split/dividend-adjusted close** (it ports yfinance
+  `auto_adjust=True`). **Tiingo returns adjusted close on its free tier**, so it is the **implemented** provider
+  (`_load_from_tiingo`, keyed via `TIINGO_API_KEY`; **§5.1**). Alpha Vantage's adjusted endpoint
+  (`TIME_SERIES_DAILY_ADJUSTED`) is **premium** (~$50/mo) and its free tier is **raw** only — so AV "done
+  correctly" means the paid plan (§6). For ~9-ticker adjusted daily EOD, **Tiingo (free / $10 Power) wins**;
+  AV / Polygon / EOD remain documented alternatives (§7).
+- **Whichever provider:** add it behind the chain (keep the cache fallback) and **run the parity check**
+  (`scripts/parity_check.py`, §9) before trusting it — a provider swap changes *inputs*, not the contract shape.
 
 ---
 
@@ -134,9 +143,39 @@ _PROVIDERS["alpha_vantage"] = lambda t, c, d: _load_from_alpha_vantage(t, c)
 **Add the dep** to `pyproject.toml`'s `live` extra if you use a vendor SDK (the sketch above only needs
 `requests`, already implied). Keep `[live]` what the nightly installs.
 
+### 5.1 Tiingo — the implemented provider (V13.9)
+
+This is what actually ships — `_load_from_tiingo(ticker, config)` in `data_loader.py`:
+
+- **Key:** `os.environ["TIINGO_API_KEY"]`, sent as an `Authorization: Token …` **header** (not in the URL, so
+  it can't leak into logs/proxies). **No key ⇒ returns `None`** and the chain falls through — so the default
+  `auto` order is unchanged unless the key is set (backward compatible).
+- **Endpoint:** `GET https://api.tiingo.com/tiingo/daily/{ticker}/prices?startDate=…&format=csv` (honors
+  `HTTPS_PROXY`).
+- **Adjusted by default:** maps the **`adj*`** columns (`adjOpen/adjHigh/adjLow/adjClose/adjVolume`) onto
+  `Open/High/Low/Close/Volume` when `config.auto_adjust` (the engine default) — matching yfinance's
+  auto-adjusted convention — then through `standardize_price_df`. (Falls back to the raw fields only if `adj*`
+  are absent.)
+- **Throttle/error guard:** if Tiingo returns a JSON body (`{…}`/`[…]`) instead of CSV — its rate-limit/error
+  shape at HTTP 200 — `_load_from_tiingo` returns `None` (fall through), so a throttle never parses as "empty
+  data."
+- **Chain placement:** registered in `_PROVIDERS` and added to `auto`
+  (`cache → tiingo → yfinance → yahoo_chart`); the nightly calls it explicitly via `--provider tiingo`.
+
+**Producer + safety net (shipped):**
+- `scripts/run_nightly.py` — pre-flight freshness guard (emits `available:false` on a no-new-bar day) → the
+  pooled gated run → `export_yearline_context` + `export_yearline_trend_series` keyed `{ticker}_{as_of}` →
+  `yearline_run_status_{run_date}.json`; retry/backoff on every live fetch. (Calendar:
+  `yearline_universe/market_calendar.py`.)
+- `scripts/parity_check.py` — Tiingo adjusted close vs the committed Yahoo cache; diffs **distance-to-MA250**
+  across the universe and fails beyond a tolerance. **Run it once before enabling the schedule.**
+
+**To enable the nightly cron:** set the `TIINGO_API_KEY` repo secret (§8), run `parity_check.py`, then
+uncomment `schedule:` in `.github/workflows/yearline_nightly.yml`.
+
 ---
 
-## 6. Alpha Vantage specifics (the planned choice)
+## 6. Alpha Vantage specifics (a documented paid alternative)
 
 - **Key:** free, instant from <https://www.alphavantage.co/support/#api-key>. Treat it as a secret anyway.
 - **Endpoints:**
@@ -199,20 +238,22 @@ committed cache) needs **no** secret, and a key was wrong to imply for the keyle
 
 ## 9. Safe migration plan (don't silently change model inputs)
 
-1. **Get the key**, set `ALPHAVANTAGE_API_KEY` locally; add `_load_from_alpha_vantage` (§5).
-2. **Keep fallbacks** — chain `cache → alpha_vantage → yfinance → yahoo_chart` so a provider hiccup degrades,
-   not breaks.
-3. **Parity check (the important one).** For each universe ticker, fetch the same window from AV and from the
-   committed cache and compare **adjusted close**: report max/most-recent % divergence. Then re-run the
-   pipeline on both and diff the **outputs that matter** — `distance_to_ma250_pct`, `active_engine`, the gated
-   `p_retry`/`hazard`. Set a tolerance; investigate anything above it (usually a dividend-adjustment
-   difference). Only proceed when divergence is understood and acceptable.
-4. **Refresh the committed cache** from the new provider (so CI and the cache fallback reflect the chosen
-   source), and note the provider in the run manifest. *(Optional: add a `data_provider` field to the
-   manifest — purely informational, not the gated contract.)*
-5. **Set the Actions secret** (§8) and flip `run_nightly.py` to `--provider alpha_vantage`. Keep the
-   `validate_contract_fixtures.py` pre-publish gate.
-6. **Monitor** the first scheduled runs (throttle JSON, divergence drift, holidays).
+Tiingo is implemented; this is the rollout (and the template for any future provider swap):
+
+1. **Get a Tiingo key**, set `TIINGO_API_KEY` locally. (`_load_from_tiingo` already ships in `data_loader.py`.)
+2. **Keep fallbacks** — `auto` is `cache → tiingo → yfinance → yahoo_chart`, so a provider hiccup degrades,
+   not breaks; the nightly pins `--provider tiingo` explicitly.
+3. **Parity check (the important one) — shipped as `scripts/parity_check.py`.** It fetches each universe ticker
+   from Tiingo and the committed cache, compares **adjusted close** (max / latest % divergence), and diffs
+   **distance-to-MA250** at the latest common bar, failing beyond a tolerance (default 0.25pp). Run
+   `TIINGO_API_KEY=… python scripts/parity_check.py` and investigate anything flagged (usually a
+   dividend-adjustment difference) **before** trusting the swap.
+4. **(Optional) refresh the committed cache** from Tiingo so CI + the cache fallback reflect the chosen source.
+   The run manifest already records `data_provider` per ticker (informational, not the gated contract).
+5. **Set the `TIINGO_API_KEY` Actions secret** (§8 pattern). The shipped `.github/workflows/yearline_nightly.yml`
+   already reads it and runs `run_nightly.py --provider tiingo`, with `validate_contract_fixtures.py` as the
+   pre-publish gate. Then **uncomment `schedule:`**.
+6. **Monitor** the first scheduled runs (the `yearline_run_status_*` sentinel, divergence drift, holidays).
 
 > A provider swap **does not** touch the `YearlineContext` / `YearlineTrendSeries` contract (`adapter_version`
 > / `series_version` stay frozen) — it changes *inputs*, not the *shape*. But because it changes the numbers,
