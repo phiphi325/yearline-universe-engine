@@ -1,25 +1,26 @@
 # =============================================================================
-# yearline nightly producer — ACTIVE (manual / workflow_dispatch). V13.8.4.
+# yearline nightly producer — ACTIVE (manual / workflow_dispatch). V13.9.
 # -----------------------------------------------------------------------------
-# Promoted from docs/phased_design/phase_09/ci/yearline_nightly.yml. It is intentionally
-# **manual-only** for now: the `schedule:` trigger stays commented until BOTH are true —
-#   (1) a data-API secret `DATA_API_KEY` is configured (Settings → Secrets → Actions), and
-#   (2) a `scripts/run_nightly.py` entrypoint exists (run_universe_pipeline → export_yearline_context
-#       + export_yearline_trend_series). Until then a manual dispatch fails fast at "Produce" with a
-#       clear message — that is expected.
-# OM-Y2 (consumer ingest+persist+hydrate) is already verified on live Postgres, so the
-# "don't schedule before a consumer exists" gate is cleared; CI (ci.yml) is the other gate and is now in.
+# Manual-only for now: the `schedule:` trigger stays commented until a `TIINGO_API_KEY`
+# secret is configured (Settings → Secrets and variables → Actions). The entrypoint
+# (scripts/run_nightly.py) and CI (ci.yml) are both in, and OM-Y2 (consumer ingest) is
+# verified on live Postgres — so the secret is the last gate before scheduling.
 #
-# Enablement checklist + rationale: ../../docs/phased_design/phase_09/option_mgmt_handoff.md §10
-# Deployment context: ../../docs/option-mgmt-integration/two_repo_strategy_and_deployment.md §3
+# Data source: Tiingo (adjusted daily EOD; keyed, not IP-blocked like Yahoo). The provider
+# chain falls back to yfinance → yahoo_chart if Tiingo is unavailable. No key ⇒ run_nightly's
+# pre-flight will report a fetch failure (set the secret first). Reference + the AV/Tiingo/Polygon/
+# EOD comparison: docs/reference/data_providers.md.
 #
-# Hard rules (enforced by comments + the validate step below):
+# Before scheduling, run the parity check once: TIINGO_API_KEY=… python scripts/parity_check.py
+# (Tiingo adjusted close vs the committed Yahoo cache; must pass before you trust the swap).
+#
+# Hard rules:
 #   • idempotent publish (artifacts keyed {ticker}_{as_of}; re-runs overwrite)
-#   • market-calendar aware (no-new-bar ⇒ emit available:false / stale, not a half build)
+#   • market-calendar aware (run_nightly's pre-flight emits available:false on a no-new-bar day)
 #   • schema-validate BEFORE publishing (scripts/validate_contract_fixtures.py) — don't poison the feed
 #   • the schedule is for DATA freshness only — it must NEVER bump adapter_version / series_version
-#     (those are reviewed PRs with a coordinated OM-Y1 pin bump)
 #   • educational research only; every surface stays must_not_auto_execute
+# Enablement checklist: docs/phased_design/phase_09/option_mgmt_handoff.md §10.
 # =============================================================================
 name: yearline-nightly
 
@@ -31,11 +32,10 @@ on:
         required: false
         type: string
   # ---------------------------------------------------------------------------
-  # ENABLE ONLY AFTER DATA_API_KEY is set + scripts/run_nightly.py exists (see header / §10 step 4):
+  # ENABLE ONLY AFTER the TIINGO_API_KEY secret is set + parity_check.py passes:
   # schedule:
   #   - cron: "30 6 * * 2-6"    # ~01:30 ET Tue–Sat (after the US close + data settle); UTC.
-  #                              # Tue–Sat covers Mon–Fri trading days. Still guard the market
-  #                              # calendar in-job (holidays); cron can't know them.
+  #                              # Tue–Sat covers Mon–Fri sessions; run_nightly's guard handles holidays.
   # ---------------------------------------------------------------------------
 
 permissions:
@@ -60,28 +60,19 @@ jobs:
       - name: Install
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[live]"     # the nightly needs the live data providers (cache-only runs do not)
+          pip install -e ".[live]"     # base (incl. requests) + yfinance/curl_cffi fallback providers
           pip install jsonschema       # used by the validate step
 
-      - name: Produce the envelope + artifacts (pooled universe; MSFT consumed)
+      - name: Produce the envelopes + trend series (pooled universe; gated contract)
         env:
-          AS_OF: ${{ inputs.as_of }}
-          # DATA_API_KEY: ${{ secrets.DATA_API_KEY }}   # the nightly data pull needs this
+          TIINGO_API_KEY: ${{ secrets.TIINGO_API_KEY }}
         run: |
-          # The thin entrypoint to create (it already has all the pieces — handoff §0/§2):
-          #   run_universe_pipeline(..., surface_blend=True, surface_success=True)
-          #     → adapter.export_yearline_context(envelope, out_dir="exports/yearline_context")
-          #     → adapter.export_yearline_trend_series(semantic_history, price_df=…, out_dir=…)
-          # Idempotency: both exporters key the filename by {ticker}_{as_of}, so a re-run of the same
-          # date overwrites in place. On a no-new-bar day, emit available:false / a stale envelope
-          # rather than a half-built one (the market-calendar guard lives in this entry).
-          if [ ! -f scripts/run_nightly.py ]; then
-            echo "::error::scripts/run_nightly.py not found. Create the nightly entrypoint and add the"
-            echo "::error::DATA_API_KEY secret before dispatching (see docs §10). Manual dispatch is wired,"
-            echo "::error::but the data path is intentionally not yet implemented."
-            exit 1
-          fi
-          python scripts/run_nightly.py --as-of "${AS_OF:-latest}" --out exports/yearline_context
+          # run_nightly: pre-flight freshness guard → pooled run (surface_blend + surface_success +
+          # pool_hazard + calibrate) → per-ticker export_yearline_context + export_yearline_trend_series,
+          # keyed {ticker}_{as_of}; writes yearline_run_status_{run_date}.json (available true/false).
+          ARGS="--provider tiingo --out exports/yearline_context"
+          if [ -n "${{ inputs.as_of }}" ]; then ARGS="$ARGS --as-of ${{ inputs.as_of }}"; fi
+          python scripts/run_nightly.py $ARGS
 
       - name: Validate emitted artifacts against the pinned schemas BEFORE publishing
         run: python scripts/validate_contract_fixtures.py   # fails the run (skips publish) on any drift
