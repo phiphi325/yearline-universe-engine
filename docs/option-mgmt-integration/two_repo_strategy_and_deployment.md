@@ -97,9 +97,12 @@ It has no request path; it runs nightly, pools the universe, and emits the MSFT 
   prerequisite). Gate the cron behind: **idempotent publish** (key by `{ticker}_{as_of}`),
   **market-calendar awareness** (no-new-bar ⇒ `available:false`, not a half build), **secrets + cost** (the
   pooled-universe data pull), and the rule that the **nightly job never bumps
-  `adapter_version`/`series_version`** (schedule = *data* freshness only). A ready-to-activate, **inert**
-  template lives at `docs/phased_design/phase_09/ci/yearline_nightly.yml`; the full checklist is
-  `phase_09/option_mgmt_handoff.md` §10.
+  `adapter_version`/`series_version`** (schedule = *data* freshness only). **Status (V13.8.4):** the
+  workflow is **promoted & active (manual)** at `.github/workflows/yearline_nightly.yml`
+  (`workflow_dispatch`-first; `schedule:` commented pending a `DATA_API_KEY` secret + a
+  `scripts/run_nightly.py` entrypoint), and CI (`.github/workflows/ci.yml`) runs the full suite + the
+  contract validator on push/PR. OM-Y2 is verified on live Postgres, so only those two operational items
+  remain before the cron. Full checklist: `phase_09/option_mgmt_handoff.md` §10.
 
 ### option-mgmt — already specced
 web → **Vercel**; api → **Fly.io**; db → **Neon Postgres**; `docker-compose` for local; Redis cache in

@@ -243,12 +243,14 @@ yearline is a **headless nightly batch**, not a service (full deployment analysi
 gracefully (`is_stale`, `available:false`). The right trigger to flip on a cron is **consumer-readiness +
 ops hygiene, not a date:**
 
-1. **Don't schedule before OM-Y2.** A daily artifact with nowhere to land is noise. Order: **OM-Y1**
-   (contract + fixtures pinned) → **OM-Y2** (ingest + persist) → *then* turn on `schedule:`.
-2. **Ship it `workflow_dispatch`-first (manual).** Produce specific `as_of` dates on demand (demo/backfill)
-   and prove idempotency, with **no cron**. Template: [`ci/yearline_nightly.yml`](ci/yearline_nightly.yml)
-   — it lives under `docs/` so it is **inert**; copy it to `.github/workflows/` to activate. **NB: this repo
-   has no CI yet** — adding CI + the cross-repo contract test is itself a prerequisite (step 4).
+1. ✅ **Don't schedule before OM-Y2 — now cleared.** OM-Y0/OM-Y1 merged and **OM-Y2 (ingest + persist +
+   hydrate) is verified on live Postgres**, so there is a consumer for the artifact. (A daily artifact with
+   nowhere to land is noise.)
+2. ✅ **`workflow_dispatch`-first (manual) — promoted & active.** The workflow now lives at
+   **`.github/workflows/yearline_nightly.yml`** (V13.8.4), manual-only: run specific `as_of` dates on demand
+   (demo/backfill) and prove idempotency, with **no cron**. (The `docs/phased_design/phase_09/ci/` copy is
+   now just a pointer.) CI is also in: **`.github/workflows/ci.yml`** runs the full pytest suite +
+   `scripts/validate_contract_fixtures.py` on every push/PR.
 3. **Gate the cron behind:**
    - **Deterministic run + idempotent publish** — re-running the same `as_of` overwrites cleanly (key the
      artifact by `{ticker}_{as_of}`); no duplicate rows downstream.
@@ -257,12 +259,16 @@ ops hygiene, not a date:**
    - **Secrets + budget** — the nightly job does the data pull (price cache); put the data-API key in repo
      secrets and respect rate-limit/runner cost. Run the **pooled universe** (MSFT trust needs it), not MSFT
      alone.
-   - **Contract test green in CI** — validate the emitted artifact against `yearline_context_schema.json` +
-     `yearline_trend_series_schema.json` **before** publishing, so a bad push can't poison the feed.
+   - ✅ **Contract test green in CI** — `scripts/validate_contract_fixtures.py` validates every artifact
+     against the pinned `YearlineContext` / `YearlineTrendSeries` schemas (+ version pins, + committed-schema
+     drift) on push/PR **and** as the nightly's pre-publish gate, so a bad push can't poison the feed.
    - **Never let the nightly job bump `adapter_version` / `series_version`** — the schedule is for *data*
      freshness, never a contract change (those stay reviewed PRs with a coordinated OM-Y1 bump).
-4. **Flip `workflow_dispatch` → `schedule:`** the day OM-Y2 can ingest it **and** the contract test is wired
-   into CI. Until then, manual `workflow_dispatch` is the correct, safe state.
+4. **Flip `workflow_dispatch` → `schedule:`** — OM-Y2 ✅ and the CI contract test ✅ are both now in, so the
+   **only remaining prerequisites are operational:** add the `DATA_API_KEY` secret and a
+   `scripts/run_nightly.py` entrypoint (run_universe_pipeline → `export_yearline_context` +
+   `export_yearline_trend_series`), then uncomment the `schedule:` block. Until then, manual
+   `workflow_dispatch` is the correct, safe state.
 
 ---
 

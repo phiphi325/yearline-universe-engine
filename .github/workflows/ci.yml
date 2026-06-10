@@ -1,0 +1,51 @@
+# =============================================================================
+# CI — yearline-universe-engine (V13.8.4, this repo's first CI).
+# Runs on every push + PR:
+#   1) the full test suite, process-isolated via scripts/run_tests.sh (one file per process). Several
+#      tests spin up the full real-data universe pipeline and hold large pandas frames; a single pytest
+#      process can OOM on a memory-constrained runner (the repo ships run_tests.sh for exactly this —
+#      see its header / tests/conftest.py). 107 tests across 24 files.
+#   2) the producer-side contract test (scripts/validate_contract_fixtures.py): every committed
+#      YearlineContext / YearlineTrendSeries fixture must conform to the pinned in-code JSON schemas +
+#      version pins, and the committed *_schema.json files must not drift from adapter.py.
+#
+# Tests are offline: they read the committed price cache (data/price_cache/*.csv) + config/*.yaml; no
+# network / yfinance. Educational research only; must_not_auto_execute.
+# =============================================================================
+name: ci
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,viz]"      # base deps + pytest (dev) + matplotlib (viz); live data providers not needed
+          pip install jsonschema           # deep validation in the contract test
+
+      - name: Test suite (process-isolated; OOM-safe)
+        run: bash scripts/run_tests.sh
+
+      - name: Contract test — committed fixtures conform to the pinned schemas + version pins
+        run: python scripts/validate_contract_fixtures.py
