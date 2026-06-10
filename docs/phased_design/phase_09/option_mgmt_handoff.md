@@ -35,7 +35,8 @@ needs), emitted verbatim by yearline's V13.8 adapter. Pin: **`ADAPTER_VERSION = 
 - **Decision contract** (`YearlineContext`): schema `exports/yearline_context/yearline_context_schema.json`;
   fixtures `…/fixture_msft_gated.json`, `…/fixture_stale_empty.json`.
 - **Presentation series** (`YearlineTrendSeries`, V13.8.1 — for the trend plot, §6): schema
-  `…/yearline_trend_series_schema.json`; fixture `…/fixture_msft_trend_series.json`.
+  `…/yearline_trend_series_schema.json`; fixtures `…/fixture_msft_trend_series.json` (available) and
+  `…/fixture_unavailable_trend_series.json` (the `available:false` empty state — added V13.8.2).
 - All mirrored in `docs/phased_design/phase_09/artifacts/`.
 
 These are the bytes to vendor into `option-mgmt-2026` as your golden fixtures.
@@ -172,7 +173,36 @@ Shape (parallel arrays aligned to `dates`):
   "must_not_auto_execute": true }
 ```
 **OM-Y3 plots from this** (the current-state *card* still comes from `YearlineContext`). Vendor
-`fixture_msft_trend_series.json` + `yearline_trend_series_schema.json` as the panel's golden fixture.
+`yearline_trend_series_schema.json` + **both** fixtures — `fixture_msft_trend_series.json` (available) and
+`fixture_unavailable_trend_series.json` (empty state) — as the panel's golden fixtures.
+
+### 6.1 Rendering rules for the OM-Y3 trend plot (read before you build)
+The artifact is delivered; these rules keep the panel **correct**, not merely present. Full treatment:
+`ux_trend_plot_support_analysis.md` §6. *(V13.8.2 = docs + golden-fixture hardening; the `series_version`
+pin is **unchanged** — the artifact shape did not change, so no coordinated yearline/option-mgmt PR pair
+is required.)*
+
+1. **Three scales → stacked panels, never one y-axis.** Panel A price (`close/ma20/ma50/ma250`); Panel B
+   percent (`distance_to_ma250_pct`, `drawdown_so_far_pct`, with a **0% line = the yearline**); Panel C 0–1
+   trend scores (`trend_quality/pullback_quality/overextension/deterioration`); Panel D 0–1 gated risk
+   (`hazard_today`, `p_retry_40d`).
+2. **The right edge ≠ the current-state card.** `distance_to_ma250_pct[-1]` and the price/MA overlays equal
+   the card's same-day values, but `p_retry_40d` (the daily **empirical-gated** history) ≠ the card's
+   `p_retry["40"]` (the **Phase-7 blend**, today-only). Plot the line as history; if you want a "today"
+   value, show the card's blended number as a **separate labelled marker** — never as the line's endpoint.
+3. **`null` = "not applicable in this regime," not zero — gap the line, don't interpolate.** Trend scores
+   are `null` while in repair; `hazard_today`/`p_retry_40d` are `null` while in trend. Use `spanGaps:false`
+   (or equivalent) and explain the gap with the regime band.
+4. **Shade by `active_engine` runs; map internal names to labels** (never hardcode the raw strings):
+   `repair_retry_hazard_engine` → "Repair / retry watch" (amber, below MA250);
+   `post_confirmation_trend_engine` → "Confirmed trend" (green, above MA250). Trend-state enum:
+   `pullback_but_intact` → "Pullback, trend intact"; `indeterminate_trend` → "Indeterminate";
+   `trend_deterioration_watch` → "Deterioration watch"; `null` → (no trend state, in repair).
+5. **Empty/stale states.** `{"available": false, …}` ⇒ render an explicit "no trend history" panel (golden
+   fixture `fixture_unavailable_trend_series.json`), **not** a blank chart. The series has no `is_stale` of
+   its own — reuse the same-day `YearlineContext.is_stale`, and assert the card and series share
+   `ticker` + `as_of` before rendering them together.
+
 Full analysis: [`ux_trend_plot_support_analysis.md`](ux_trend_plot_support_analysis.md).
 
 ## 7. Versioning + cross-repo contract test + maintenance

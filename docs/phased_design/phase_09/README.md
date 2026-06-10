@@ -34,6 +34,12 @@ JSON-serializable **`YearlineContext`** contract `option-mgmt-2026` consumes —
   the gated decision contract (it never enters the replay hash), so the chart payload never bloats it.
   `export_yearline_trend_series()` + `YEARLINE_TREND_SERIES_JSON_SCHEMA` + `TREND_SERIES_VERSION` pin; a real
   180-day MSFT fixture is committed. Rationale: [`ux_trend_plot_support_analysis.md`](ux_trend_plot_support_analysis.md).
+- **V13.8.2 (docs + golden-fixture hardening).** Adds the **consumer rendering contract** for OM-Y3
+  (`ux_trend_plot_support_analysis.md` §6 + `option_mgmt_handoff.md` §6.1: stacked panel/axis map, the
+  *right-edge ≠ card* surface note, the `null`-gap rule, the engine/trend-state display-label table) and an
+  `available:false` **empty-state golden fixture** (`fixture_unavailable_trend_series.json`, both dirs) with a
+  schema-conformance test. **Docs + fixtures only — the `series_version` pin is unchanged** (the artifact
+  shape did not change), so no coordinated option-mgmt PR is required.
 
 ### Design rules honored (from the assessment)
 - **No new modelling** — a pure projection over the existing Phase-7/8 envelope; deterministic.

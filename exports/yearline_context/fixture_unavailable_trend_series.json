@@ -1,0 +1,7 @@
+{
+  "available": false,
+  "warning": "no_semantic_history",
+  "ticker": "MSFT",
+  "series_version": "v13_8_1_yearline_trend_series_v1",
+  "must_not_auto_execute": true
+}
