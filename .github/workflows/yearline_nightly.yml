@@ -1,0 +1,99 @@
+# =============================================================================
+# yearline nightly producer — ACTIVE (manual / workflow_dispatch). V13.8.4.
+# -----------------------------------------------------------------------------
+# Promoted from docs/phased_design/phase_09/ci/yearline_nightly.yml. It is intentionally
+# **manual-only** for now: the `schedule:` trigger stays commented until BOTH are true —
+#   (1) a data-API secret `DATA_API_KEY` is configured (Settings → Secrets → Actions), and
+#   (2) a `scripts/run_nightly.py` entrypoint exists (run_universe_pipeline → export_yearline_context
+#       + export_yearline_trend_series). Until then a manual dispatch fails fast at "Produce" with a
+#       clear message — that is expected.
+# OM-Y2 (consumer ingest+persist+hydrate) is already verified on live Postgres, so the
+# "don't schedule before a consumer exists" gate is cleared; CI (ci.yml) is the other gate and is now in.
+#
+# Enablement checklist + rationale: ../../docs/phased_design/phase_09/option_mgmt_handoff.md §10
+# Deployment context: ../../docs/option-mgmt-integration/two_repo_strategy_and_deployment.md §3
+#
+# Hard rules (enforced by comments + the validate step below):
+#   • idempotent publish (artifacts keyed {ticker}_{as_of}; re-runs overwrite)
+#   • market-calendar aware (no-new-bar ⇒ emit available:false / stale, not a half build)
+#   • schema-validate BEFORE publishing (scripts/validate_contract_fixtures.py) — don't poison the feed
+#   • the schedule is for DATA freshness only — it must NEVER bump adapter_version / series_version
+#     (those are reviewed PRs with a coordinated OM-Y1 pin bump)
+#   • educational research only; every surface stays must_not_auto_execute
+# =============================================================================
+name: yearline-nightly
+
+on:
+  workflow_dispatch:            # manual-first: run a specific as_of on demand (demo / backfill)
+    inputs:
+      as_of:
+        description: "Data date to score (YYYY-MM-DD). Blank = latest available bar."
+        required: false
+        type: string
+  # ---------------------------------------------------------------------------
+  # ENABLE ONLY AFTER DATA_API_KEY is set + scripts/run_nightly.py exists (see header / §10 step 4):
+  # schedule:
+  #   - cron: "30 6 * * 2-6"    # ~01:30 ET Tue–Sat (after the US close + data settle); UTC.
+  #                              # Tue–Sat covers Mon–Fri trading days. Still guard the market
+  #                              # calendar in-job (holidays); cron can't know them.
+  # ---------------------------------------------------------------------------
+
+permissions:
+  contents: read                # bump to `write` only if you publish to a data branch / release asset
+
+concurrency:                    # never let two nightly runs race on the same artifact
+  group: yearline-nightly
+  cancel-in-progress: false
+
+jobs:
+  produce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[live]"     # the nightly needs the live data providers (cache-only runs do not)
+          pip install jsonschema       # used by the validate step
+
+      - name: Produce the envelope + artifacts (pooled universe; MSFT consumed)
+        env:
+          AS_OF: ${{ inputs.as_of }}
+          # DATA_API_KEY: ${{ secrets.DATA_API_KEY }}   # the nightly data pull needs this
+        run: |
+          # The thin entrypoint to create (it already has all the pieces — handoff §0/§2):
+          #   run_universe_pipeline(..., surface_blend=True, surface_success=True)
+          #     → adapter.export_yearline_context(envelope, out_dir="exports/yearline_context")
+          #     → adapter.export_yearline_trend_series(semantic_history, price_df=…, out_dir=…)
+          # Idempotency: both exporters key the filename by {ticker}_{as_of}, so a re-run of the same
+          # date overwrites in place. On a no-new-bar day, emit available:false / a stale envelope
+          # rather than a half-built one (the market-calendar guard lives in this entry).
+          if [ ! -f scripts/run_nightly.py ]; then
+            echo "::error::scripts/run_nightly.py not found. Create the nightly entrypoint and add the"
+            echo "::error::DATA_API_KEY secret before dispatching (see docs §10). Manual dispatch is wired,"
+            echo "::error::but the data path is intentionally not yet implemented."
+            exit 1
+          fi
+          python scripts/run_nightly.py --as-of "${AS_OF:-latest}" --out exports/yearline_context
+
+      - name: Validate emitted artifacts against the pinned schemas BEFORE publishing
+        run: python scripts/validate_contract_fixtures.py   # fails the run (skips publish) on any drift
+
+      - name: Publish the artifact (loosest option = upload-artifact; zero new infra)
+        uses: actions/upload-artifact@v4
+        with:
+          name: yearline-context-${{ inputs.as_of || 'latest' }}
+          path: exports/yearline_context/*.json
+          if-no-files-found: error
+          retention-days: 30
+      # Alternatives as you graduate (see two_repo_strategy §3): a GitHub Release asset / small data
+      # branch (git-auditable, zero infra), object storage (S3/GCS/R2), or — now that OM-Y2's
+      # `yearline_context` table exists — an idempotent upsert into option-mgmt's Neon Postgres
+      # ("the latest row", matching inputs_hydration_service.py). Start with the loosest.
