@@ -49,6 +49,14 @@ JSON-serializable **`YearlineContext`** contract `option-mgmt-2026` consumes —
   contract test (`option_mgmt_handoff.md` §10, `two_repo_strategy_and_deployment.md` §3), with an inert
   workflow template at [`ci/yearline_nightly.yml`](ci/yearline_nightly.yml). **No contract change — both pins
   frozen.**
+- **V13.8.4 (CI + producer activation).** This repo's **first CI**: `.github/workflows/ci.yml` runs the full
+  pytest suite + `scripts/validate_contract_fixtures.py` (the producer-side contract test — validates every
+  committed `YearlineContext`/`YearlineTrendSeries` fixture against the pinned in-code schemas + version pins,
+  and guards committed-schema drift) on every push/PR. The nightly producer is **promoted & active (manual)**
+  at `.github/workflows/yearline_nightly.yml` — `workflow_dispatch`-first; `schedule:` stays commented until a
+  `DATA_API_KEY` secret + a `scripts/run_nightly.py` entrypoint exist (OM-Y2 on live PG cleared the consumer
+  gate). The `ci/yearline_nightly.yml` template is now a pointer to the active copy. **No contract change —
+  both pins frozen.**
 
 ### Design rules honored (from the assessment)
 - **No new modelling** — a pure projection over the existing Phase-7/8 envelope; deterministic.
