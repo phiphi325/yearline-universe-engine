@@ -194,3 +194,14 @@ def test_trend_series_export(tmp_path):
     import json
     s = json.load(open(p))
     assert s["available"] is True and s["n"] == 12
+
+
+def test_trend_series_unavailable_shape_is_schema_conformant():
+    """V13.8.2 — the available:false empty state is itself schema-conformant (the empty-panel golden shape
+    OM-Y3 vendors as fixture_unavailable_trend_series.json). Docs/fixture hardening only, no new modelling,
+    so the series_version pin is unchanged."""
+    s = to_yearline_trend_series(pd.DataFrame(), ticker="MSFT")
+    _assert_series_schema(s)                          # required keys + additionalProperties:false hold
+    assert s["available"] is False and s["warning"] == "no_semantic_history"
+    assert s["ticker"] == "MSFT" and s["series_version"] == TREND_SERIES_VERSION
+    assert s["must_not_auto_execute"] is True
