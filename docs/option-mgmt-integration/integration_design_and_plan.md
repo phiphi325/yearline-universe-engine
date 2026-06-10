@@ -42,6 +42,31 @@ class YearlineContext(BaseModel, frozen=True):           # packages/engine/engin
   hash (below). Bump yearline's adapter version on any contract change; pin the accepted range in
   option-mgmt.
 
+### 1.1 Gate *status* vs model *performance* — and the deferred `gate_diagnostics` block
+
+`YearlineContext` deliberately carries the **outcome** of the trust gate, not its inputs: per-horizon
+`gate_passed` (+ `success_gate_passed`), `p_retry_basis`, and `reference_scope` (the sample bucket). That is
+enough for the consumer to **gate-respect** and for the Today-screen card to show *"trustworthy now /
+withheld / which surface / which bucket / stale."*
+
+It does **not** carry the gate's diagnostics — **AUC, MACE (calibration error), and sample size `n`** (scored
+against AUC ≥ 0.60, MACE ≤ 0.10, n ≥ 50). So the contract answers *"is this number trustworthy now?"* but
+**not** *"is the model performing well over time?"*
+
+**Decision (V13.8.3): defer an optional `gate_diagnostics` block; keep it off the end-user card.**
+- The diagnostics already exist in yearline's calibration context, so projecting a per-horizon
+  `gate_diagnostics: {auc, mace, n, thresholds}` is a **thin projection — but a contract-shape change** ⇒
+  **bump `ADAPTER_VERSION`** ⇒ a coordinated **OM-Y1** pin bump + a fixtures refresh. A *deliberate,
+  versioned* add, not free.
+- **When added**, it feeds an **internal ops/health view** (model monitoring), **not** the holder-facing
+  card — an end user should read *gated/withheld*, never an AUC. Keeps the user surface honest and the
+  decision contract lean.
+- **Until then**, model health is read from yearline's own calibration/reliability reports (Phase 8
+  `…/reliability`), and the card shows gate **status** only.
+
+This resolves open question #5: *display all gated **status** on the card; treat AUC/MACE/`n` as a separate,
+versioned `gate_diagnostics` add for an internal view — not the end-user surface.*
+
 ## 2. Data flow (idiomatic to option-mgmt's lifecycle)
 
 ```
