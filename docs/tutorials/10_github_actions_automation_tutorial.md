@@ -161,6 +161,10 @@ re-runs the pooled pipeline, and exports. So **no secret is required.**
 >
 > For a 9-ticker daily-bar pull the volume is tiny, so a paid free tier easily covers it if you go that route.
 
+For the full paid-provider build + migration guide (drop-in provider code, the **adjusted-close caveat**,
+key-as-secret wiring, a vendor comparison, and a **parity check**), see
+[`../reference/data_providers.md`](../reference/data_providers.md).
+
 ### 2.3 Lesson — gate the *schedule* on readiness, not a date
 A daily artifact with **no consumer is just noise**. We kept the nightly on `workflow_dispatch` (manual) and
 only plan to uncomment `schedule:` once:

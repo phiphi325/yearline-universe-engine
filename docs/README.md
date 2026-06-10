@@ -15,6 +15,12 @@ All docs for the V13 Universe Statistical Context Engine.
 |---|---|
 | [V13_performance_optimization_report.md](V13_performance_optimization_report.md) | profiling, the output-preserving replay vectorization (~13×) and the parallel runner, equivalence proofs, scaling projections, VPS sizing |
 
+## Reference
+
+| Doc | What it covers |
+|---|---|
+| [reference/data_providers.md](reference/data_providers.md) | **Price data providers.** How the engine sources OHLCV today (the keyless `cache → yfinance → yahoo_chart` chain), why you'd move to a **paid provider** (Yahoo throttles cloud/GitHub-Actions IPs), the **adjusted-close caveat** (the engine needs split/dividend-adjusted close — and Alpha Vantage's adjusted endpoint is **premium**, free is raw-only), a **drop-in `_load_from_alpha_vantage`** sketch + key-as-Actions-secret wiring, an AV/Polygon/Tiingo/EOD comparison, and a **safe migration with a parity check** (don't silently change model inputs). |
+
 ## Roadmap / phased design
 
 | Doc | What it covers |
@@ -31,13 +37,15 @@ All docs for the V13 Universe Statistical Context Engine.
 
 ## Tutorials
 
-Seven numbered tutorials (built in roughly the project's phase order). See the index for the full table.
+Ten numbered tutorials (built in roughly the project's phase order). See the index for the full table.
 
 | Doc | What it covers |
 |---|---|
-| [tutorials/README.md](tutorials/README.md) | **tutorials index** (01–07) |
+| [tutorials/README.md](tutorials/README.md) | **tutorials index** (01–10) |
 | 01–05 | performance optimization · optional-computation feature flags · empirical-estimator-over-model-extrapolation (P3) · calibration & trust-gating (P4) · AUC & calibration for ML students |
 | 06–07 | **(P7)** direct horizon classifier & the blend · the **MSFT 2026-06-05 low-readiness-repair** worked walkthrough |
+| 08–09 | **(P8)** the retry-success overlay · the **RS-4 success-composite** worked walkthrough |
+| 10 | **(DevOps)** automating a two-repo pipeline with **GitHub Actions** (CI + scheduled producer; the option-mgmt integration as the case study) |
 
 ## Conventions
 

@@ -290,6 +290,10 @@ add retry/backoff in `run_nightly.py`; run on a **self-hosted runner** (your own
 provider** (Polygon/Tiingo/EOD/Alpha Vantage) — *that* is the only scenario where a `*_API_KEY` secret enters
 the picture. A 9-ticker daily-bar pull is tiny, so cost/limits are a non-issue on a paid free tier.
 
+> **Going paid (e.g. Alpha Vantage):** full build + migration guide — the drop-in provider, the
+> adjusted-close caveat (AV's adjusted endpoint is *premium*), key-as-Actions-secret wiring, a vendor
+> comparison, and a parity check — is in [`../../reference/data_providers.md`](../../reference/data_providers.md).
+
 ---
 
 *Producer-side reference (this repo): `src/yearline_universe/adapter.py`, `phase_09/README.md`,
