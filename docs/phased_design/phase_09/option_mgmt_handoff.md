@@ -256,19 +256,39 @@ ops hygiene, not a date:**
      artifact by `{ticker}_{as_of}`); no duplicate rows downstream.
    - **Market-calendar awareness** — skip weekends/holidays, or emit `available:false` / a stale envelope on
      a no-new-bar day rather than a half-built one.
-   - **Secrets + budget** — the nightly job does the data pull (price cache); put the data-API key in repo
-     secrets and respect rate-limit/runner cost. Run the **pooled universe** (MSFT trust needs it), not MSFT
-     alone.
+   - **Data source + runner reality (no API key needed)** — the nightly pull uses the engine's **keyless**
+     provider chain (`yfinance` → Yahoo v8 `yahoo_chart`; see §10.1), so **no secret is required**. The real
+     risk is that **Yahoo rate-limits/blocks cloud datacenter IPs** (GitHub-hosted runners share them) —
+     mitigate with the built-in fallback + `curl_cffi` impersonation + retry/backoff, or a self-hosted runner
+     / paid provider (the only case a secret applies). Run the **pooled universe** (MSFT trust needs it), not
+     MSFT alone; daily-bar volume is tiny.
    - ✅ **Contract test green in CI** — `scripts/validate_contract_fixtures.py` validates every artifact
      against the pinned `YearlineContext` / `YearlineTrendSeries` schemas (+ version pins, + committed-schema
      drift) on push/PR **and** as the nightly's pre-publish gate, so a bad push can't poison the feed.
    - **Never let the nightly job bump `adapter_version` / `series_version`** — the schedule is for *data*
      freshness, never a contract change (those stay reviewed PRs with a coordinated OM-Y1 bump).
 4. **Flip `workflow_dispatch` → `schedule:`** — OM-Y2 ✅ and the CI contract test ✅ are both now in, so the
-   **only remaining prerequisites are operational:** add the `DATA_API_KEY` secret and a
-   `scripts/run_nightly.py` entrypoint (run_universe_pipeline → `export_yearline_context` +
-   `export_yearline_trend_series`), then uncomment the `schedule:` block. Until then, manual
-   `workflow_dispatch` is the correct, safe state.
+   **only remaining prerequisite is operational:** a `scripts/run_nightly.py` entrypoint (run_universe_pipeline
+   → `export_yearline_context` + `export_yearline_trend_series`), then uncomment the `schedule:` block. **No
+   API-key secret is needed** for the default keyless providers (§10.1) — add one only if you opt into a paid
+   data vendor for cloud-runner reliability. Until then, manual `workflow_dispatch` is the correct, safe state.
+
+### 10.1 Where the nightly data comes from (no API key)
+`load_price_data(provider="auto")` walks a **keyless** provider chain (`src/yearline_universe/data_loader.py`):
+1. **`cache`** — committed per-ticker CSVs (`data/price_cache/{TICKER}.csv`); offline/reproducible — this is
+   what **CI** uses.
+2. **`yfinance`** — `yf.download(...)`, auto-adjusted Yahoo Finance bars. **Free, no API key.**
+3. **`yahoo_chart`** — the Yahoo v8 chart HTTPS endpoint via `curl_cffi` (browser impersonation) or
+   `requests`. **Free, no API key.**
+
+A nightly run pulls fresh bars (`force_download=True` ⇒ `yfinance` → `yahoo_chart`), refreshes the cache,
+re-runs the pooled pipeline, and exports the artifacts. **So `DATA_API_KEY` is *not* required** — it was a
+generic placeholder; the default stack authenticates with nothing. The one real caveat: **Yahoo throttles/
+blocks datacenter IPs**, and GitHub-hosted runners share them, so live pulls can intermittently 404/429/empty.
+Mitigations, by effort: rely on the built-in `yfinance`→`yahoo_chart` fallback + `curl_cffi` impersonation;
+add retry/backoff in `run_nightly.py`; run on a **self-hosted runner** (your own IP); or move to a **paid
+provider** (Polygon/Tiingo/EOD/Alpha Vantage) — *that* is the only scenario where a `*_API_KEY` secret enters
+the picture. A 9-ticker daily-bar pull is tiny, so cost/limits are a non-issue on a paid free tier.
 
 ---
 

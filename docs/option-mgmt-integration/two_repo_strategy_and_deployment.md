@@ -76,7 +76,11 @@ It has no request path; it runs nightly, pools the universe, and emits the MSFT 
 - **Where:** simplest for a solo maintainer → a **GitHub Actions scheduled workflow** in this repo
   (no infra to run; already on GitHub). Alternatives as scale grows: a Cloud Run / Fly **scheduled job**
   (container). It needs a fresh price cache → the nightly job also does the data pull (yearline already
-  has incremental-cache + staleness flags).
+  has incremental-cache + staleness flags). **Data source = a keyless provider chain** (`yfinance` → Yahoo
+  v8 `yahoo_chart`; `src/yearline_universe/data_loader.py`) — **no API key**. Caveat: Yahoo throttles
+  datacenter IPs, so a GitHub-hosted runner may intermittently get blocked; mitigate with the built-in
+  fallback + `curl_cffi` impersonation + retry, a **self-hosted runner**, or (only then) a paid provider
+  with a key. Detail: `phase_09/option_mgmt_handoff.md` §10.1.
 - **Handoff store (where the envelope lands):**
 
   | Store | Pros | Cons |

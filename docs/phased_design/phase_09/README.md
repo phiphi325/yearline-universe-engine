@@ -54,9 +54,10 @@ JSON-serializable **`YearlineContext`** contract `option-mgmt-2026` consumes —
   committed `YearlineContext`/`YearlineTrendSeries` fixture against the pinned in-code schemas + version pins,
   and guards committed-schema drift) on every push/PR. The nightly producer is **promoted & active (manual)**
   at `.github/workflows/yearline_nightly.yml` — `workflow_dispatch`-first; `schedule:` stays commented until a
-  `DATA_API_KEY` secret + a `scripts/run_nightly.py` entrypoint exist (OM-Y2 on live PG cleared the consumer
-  gate). The `ci/yearline_nightly.yml` template is now a pointer to the active copy. **No contract change —
-  both pins frozen.**
+  `scripts/run_nightly.py` entrypoint exists (OM-Y2 on live PG cleared the consumer gate). **The data source is
+  keyless** (`yfinance` → Yahoo `yahoo_chart`; `data_loader.py`) — **no API key needed**; a secret applies only
+  if you opt into a paid provider for cloud-runner reliability (§10.1). The `ci/yearline_nightly.yml` template is
+  now a pointer to the active copy. **No contract change — both pins frozen.**
 
 ### Design rules honored (from the assessment)
 - **No new modelling** — a pure projection over the existing Phase-7/8 envelope; deterministic.
