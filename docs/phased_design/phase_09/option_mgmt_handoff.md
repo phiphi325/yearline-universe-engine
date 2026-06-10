@@ -91,6 +91,16 @@ JSON contract.
   `post_confirmation_trend_state` instead; do **not** synthesize a retry probability.
 - `is_stale == True` (or `as_of` too old for your run) ⇒ treat as `None` (abstain).
 
+**Surfacing the gate state (the OM-Y3 card).** Gate-respect is also a *display* contract: show the gated-in
+`P(retry≤H)` bars where `gate_passed[h]`, render the rest as **"withheld · building evidence"** (don't hide
+them — the withheld state is the signal), and badge `p_retry_basis` (blend/empirical), `success_gate_passed`,
+`reference_scope` (sample bucket), and `is_stale`. That answers *"is this number trustworthy right now."* It
+does **not** answer *"is the model performing well"* — the contract carries only the **boolean** gate, not
+the **AUC / MACE / `n`** behind it. A model-health readout needs an **optional `gate_diagnostics` block** (a
+contract-shape change ⇒ `ADAPTER_VERSION` bump ⇒ a coordinated OM-Y1 pin bump); keep AUC/MACE on an internal
+ops view, **not** the end-user card. Decision + rationale:
+[`../../option-mgmt-integration/integration_design_and_plan.md`](../../option-mgmt-integration/integration_design_and_plan.md) §1.
+
 ### 3.3 Gated example — MSFT, 2026-05-29 (`fixture_msft_gated.json`)
 ```jsonc
 { "as_of":"2026-05-29","ticker":"MSFT","adapter_version":"v13_8_yearline_context_adapter_v1",
@@ -225,6 +235,36 @@ disclaimer gate stay green; output-changing steps (OM-Y4) reviewed with byte-ide
    parses the two vendored fixtures and pins the accepted `adapter_version` range. No behavior change."
 3. "Implement **OM-Y2 + OM-Y3**: ingest/persist the artifact (idempotent, graceful `None`) and a read-only
    Today-screen evidence panel from `YearlineContext` (no decision change; `DailyDecision` byte-identical)."
+
+## 10. Operating the producer — the nightly run + *when* to enable the schedule
+yearline is a **headless nightly batch**, not a service (full deployment analysis:
+[`../../option-mgmt-integration/two_repo_strategy_and_deployment.md`](../../option-mgmt-integration/two_repo_strategy_and_deployment.md)
+§3). The producer side is **already ready** to schedule — both pins are frozen and the contract abstains
+gracefully (`is_stale`, `available:false`). The right trigger to flip on a cron is **consumer-readiness +
+ops hygiene, not a date:**
+
+1. **Don't schedule before OM-Y2.** A daily artifact with nowhere to land is noise. Order: **OM-Y1**
+   (contract + fixtures pinned) → **OM-Y2** (ingest + persist) → *then* turn on `schedule:`.
+2. **Ship it `workflow_dispatch`-first (manual).** Produce specific `as_of` dates on demand (demo/backfill)
+   and prove idempotency, with **no cron**. Template: [`ci/yearline_nightly.yml`](ci/yearline_nightly.yml)
+   — it lives under `docs/` so it is **inert**; copy it to `.github/workflows/` to activate. **NB: this repo
+   has no CI yet** — adding CI + the cross-repo contract test is itself a prerequisite (step 4).
+3. **Gate the cron behind:**
+   - **Deterministic run + idempotent publish** — re-running the same `as_of` overwrites cleanly (key the
+     artifact by `{ticker}_{as_of}`); no duplicate rows downstream.
+   - **Market-calendar awareness** — skip weekends/holidays, or emit `available:false` / a stale envelope on
+     a no-new-bar day rather than a half-built one.
+   - **Secrets + budget** — the nightly job does the data pull (price cache); put the data-API key in repo
+     secrets and respect rate-limit/runner cost. Run the **pooled universe** (MSFT trust needs it), not MSFT
+     alone.
+   - **Contract test green in CI** — validate the emitted artifact against `yearline_context_schema.json` +
+     `yearline_trend_series_schema.json` **before** publishing, so a bad push can't poison the feed.
+   - **Never let the nightly job bump `adapter_version` / `series_version`** — the schedule is for *data*
+     freshness, never a contract change (those stay reviewed PRs with a coordinated OM-Y1 bump).
+4. **Flip `workflow_dispatch` → `schedule:`** the day OM-Y2 can ingest it **and** the contract test is wired
+   into CI. Until then, manual `workflow_dispatch` is the correct, safe state.
+
+---
 
 *Producer-side reference (this repo): `src/yearline_universe/adapter.py`, `phase_09/README.md`,
 `planner/02_option_mgmt_integration_plan.md`, `docs/option-mgmt-integration/`. Educational research only.*

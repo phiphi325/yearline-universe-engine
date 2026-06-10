@@ -40,6 +40,15 @@ JSON-serializable **`YearlineContext`** contract `option-mgmt-2026` consumes —
   `available:false` **empty-state golden fixture** (`fixture_unavailable_trend_series.json`, both dirs) with a
   schema-conformance test. **Docs + fixtures only — the `series_version` pin is unchanged** (the artifact
   shape did not change), so no coordinated option-mgmt PR is required.
+- **V13.8.3 (docs-only — gate-status + producer ops).** Documents (1) the **card gate-status spec** —
+  gate *status* (`gate_passed`/`success_gate_passed`/`p_retry_basis`/`reference_scope`/`is_stale`) is on the
+  contract today; model *performance* (AUC/MACE/`n`) is **not**, and would need an optional `gate_diagnostics`
+  block = a versioned contract change (`ux_trend_plot_support_analysis.md` §4.1, `option_mgmt_handoff.md`
+  §3.2, decision in `../../option-mgmt-integration/integration_design_and_plan.md` §1.1); and (2) **when to
+  enable the nightly GitHub Action** — `workflow_dispatch`-first, flip to `schedule:` only after OM-Y2 + a CI
+  contract test (`option_mgmt_handoff.md` §10, `two_repo_strategy_and_deployment.md` §3), with an inert
+  workflow template at [`ci/yearline_nightly.yml`](ci/yearline_nightly.yml). **No contract change — both pins
+  frozen.**
 
 ### Design rules honored (from the assessment)
 - **No new modelling** — a pure projection over the existing Phase-7/8 envelope; deterministic.

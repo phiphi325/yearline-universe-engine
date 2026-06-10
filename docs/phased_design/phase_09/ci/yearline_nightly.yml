@@ -1,0 +1,111 @@
+# =============================================================================
+# TEMPLATE — yearline nightly producer (V13.8.3). NOT ACTIVE.
+# -----------------------------------------------------------------------------
+# This file lives under docs/ on purpose, so GitHub does NOT run it. To activate:
+#   1) copy to .github/workflows/yearline_nightly.yml
+#   2) add the data-API secret(s) under Settings → Secrets and variables → Actions
+#   3) keep it on `workflow_dispatch` (manual) until option-mgmt OM-Y2 (ingest +
+#      persist) exists AND the contract test is wired into CI — THEN uncomment
+#      the `schedule:` block below.
+#
+# Rationale + the enablement checklist: ../option_mgmt_handoff.md §10 and
+# ../../../option-mgmt-integration/two_repo_strategy_and_deployment.md §3.
+#
+# Hard rules baked in as comments below:
+#   • idempotent publish (key the artifact by {ticker}_{as_of}; re-runs overwrite)
+#   • market-calendar aware (no-new-bar ⇒ emit available:false / stale, not a half build)
+#   • validate against the JSON schemas BEFORE publishing (don't poison the feed)
+#   • the schedule is for DATA freshness only — it must NEVER bump
+#     adapter_version / series_version (those are reviewed PRs + an OM-Y1 coord bump)
+#   • educational research only; every surface stays must_not_auto_execute
+# =============================================================================
+name: yearline-nightly
+
+on:
+  workflow_dispatch:            # manual-first: run a specific as_of on demand (demo / backfill)
+    inputs:
+      as_of:
+        description: "Data date to score (YYYY-MM-DD). Blank = latest available bar."
+        required: false
+        type: string
+  # ---------------------------------------------------------------------------
+  # ENABLE ONLY AFTER OM-Y2 + the CI contract test exist (see §10 step 4):
+  # schedule:
+  #   - cron: "30 6 * * 2-6"    # ~01:30 ET Tue–Sat (after the US close + data settle); UTC.
+  #                              # Tue–Sat covers Mon–Fri trading days. Still guard the
+  #                              # market calendar in-job (holidays); cron can't know them.
+  # ---------------------------------------------------------------------------
+
+permissions:
+  contents: read                # bump to `write` only if you publish to a data branch / release asset
+
+concurrency:                    # never let two nightly runs race on the same artifact
+  group: yearline-nightly
+  cancel-in-progress: false
+
+jobs:
+  produce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .            # adjust to your packaging (or: pip install -r requirements.txt)
+          pip install jsonschema      # used by the validate step
+
+      - name: Produce the envelope + artifacts (pooled universe; MSFT consumed)
+        env:
+          AS_OF: ${{ inputs.as_of }}
+          # DATA_API_KEY: ${{ secrets.DATA_API_KEY }}   # the nightly data pull needs this
+        run: |
+          # Thin entrypoint to create (it already has all the pieces — see the handoff §0/§2):
+          #   run_universe_pipeline(..., surface_blend=True, surface_success=True)
+          #     → adapter.export_yearline_context(envelope, out_dir="exports/yearline_context")
+          #     → adapter.export_yearline_trend_series(semantic_history, price_df=…, out_dir=…)
+          # Idempotency: both exporters key the filename by {ticker}_{as_of}, so a re-run of the
+          # same date overwrites in place. On a no-new-bar day, emit available:false / a stale
+          # envelope rather than a half-built one (market-calendar guard lives in this entry).
+          python scripts/run_nightly.py --as-of "${AS_OF:-latest}" --out exports/yearline_context
+
+      - name: Validate against the contract schemas BEFORE publishing
+        run: |
+          # Fail the run (and skip publish) if any artifact drifts from the pinned schema —
+          # this is the cross-repo contract test on the producer side.
+          python - <<'PY'
+          import glob, json, jsonschema
+          from yearline_universe.adapter import (
+              YEARLINE_CONTEXT_JSON_SCHEMA, YEARLINE_TREND_SERIES_JSON_SCHEMA,
+              ADAPTER_VERSION, TREND_SERIES_VERSION,
+          )
+          ctx = sorted(glob.glob("exports/yearline_context/yearline_context_*.json"))
+          ser = sorted(glob.glob("exports/yearline_context/yearline_trend_series_*.json"))
+          for p in ctx:
+              d = json.load(open(p)); jsonschema.validate(d, YEARLINE_CONTEXT_JSON_SCHEMA)
+              assert d["adapter_version"] == ADAPTER_VERSION, f"adapter_version drift in {p}"
+              assert d["must_not_auto_execute"] is True
+          for p in ser:
+              d = json.load(open(p)); jsonschema.validate(d, YEARLINE_TREND_SERIES_JSON_SCHEMA)
+              assert d["series_version"] == TREND_SERIES_VERSION, f"series_version drift in {p}"
+              assert d["must_not_auto_execute"] is True
+          print(f"validated {len(ctx)} context + {len(ser)} series artifact(s) — OK")
+          PY
+
+      - name: Publish the artifact (loosest option = upload-artifact; zero new infra)
+        uses: actions/upload-artifact@v4
+        with:
+          name: yearline-context-${{ inputs.as_of || 'latest' }}
+          path: exports/yearline_context/*.json
+          if-no-files-found: error
+          retention-days: 30
+      # Alternatives as you graduate (see two_repo_strategy §3): a GitHub Release asset / small
+      # data branch (git-auditable, zero infra), object storage (S3/GCS/R2), or — once OM-Y2's
+      # `yearline_context` table exists — an idempotent upsert into option-mgmt's Neon Postgres
+      # ("the latest row", matching inputs_hydration_service.py). Start with the loosest.

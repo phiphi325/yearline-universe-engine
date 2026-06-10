@@ -89,6 +89,18 @@ It has no request path; it runs nightly, pools the universe, and emits the MSFT 
   move to the **Neon table** once option-mgmt's ingestion job + `yearline_context` table exist (then it's
   just "the latest row," matching `inputs_hydration_service.py`).
 
+- **When to enable the schedule (don't cron too early).** The producer is **ready** to schedule (pins
+  frozen; graceful `is_stale` / `available:false` abstention), but a daily artifact with **no consumer is
+  noise.** Sequence: **OM-Y1** (contract pinned) → **OM-Y2** (ingest + persist) → *then* a cron. **Ship it
+  `workflow_dispatch`-first** (manual `as_of` runs, no cron); flip to `schedule:` only once OM-Y2 ingests it
+  **and** a contract test validates the artifact in CI (this repo has **no CI yet** — that's a
+  prerequisite). Gate the cron behind: **idempotent publish** (key by `{ticker}_{as_of}`),
+  **market-calendar awareness** (no-new-bar ⇒ `available:false`, not a half build), **secrets + cost** (the
+  pooled-universe data pull), and the rule that the **nightly job never bumps
+  `adapter_version`/`series_version`** (schedule = *data* freshness only). A ready-to-activate, **inert**
+  template lives at `docs/phased_design/phase_09/ci/yearline_nightly.yml`; the full checklist is
+  `phase_09/option_mgmt_handoff.md` §10.
+
 ### option-mgmt — already specced
 web → **Vercel**; api → **Fly.io**; db → **Neon Postgres**; `docker-compose` for local; Redis cache in
 Phase 2. Nothing here changes for the integration except adding the **ingest step** that reads yearline's

@@ -86,6 +86,41 @@ Even without the series, `YearlineContext` already powers a useful **current-sta
 
 That card is genuinely useful for OM-Y3; the **line plot** is the increment that needs §3.
 
+### 4.1 Gate status on the card — "is this number trustworthy *now*" vs "is the model *good*"
+These are **two different questions**. The card answers the first today; the second needs a deliberate
+(versioned) add — don't conflate them.
+
+**(a) Gate *status* — already in `YearlineContext`; just render it.** Tells you, per snapshot, whether to
+trust/show a number:
+- **Per-horizon retry chips** — for H ∈ {10,20,40,60}: show the `p_retry[h]` bar where `gate_passed[h] ==
+  true`; render **"withheld · building evidence"** where `false`. **Never hide a withheld horizon** — the
+  withheld state *is* the signal ("the model declines to commit here").
+- **Basis chip** — `p_retry_basis`: `blend` = the Phase-7 gated classifier surface; `empirical` = the
+  isotonic-gated estimator; `null` = dormant (above the yearline).
+- **Success / composite** — show `p_success` and `p_successful_reclaim[h]` **only where
+  `success_gate_passed`** (each composite H is already `null` unless *both* gates passed).
+- **Sample transparency** — `reference_scope` (which empirical bucket the estimate came from, e.g.
+  `group_transition_state`).
+- **Freshness + safety** — the `is_stale` badge and the "evidence, not advice / `must_not_auto_execute`"
+  disclaimer.
+
+That is enough to read *"the model is committing / declining, on which surface, from which bucket, how fresh."*
+
+**(b) Model *performance* — NOT on the contract today (decision required).** The trust gate is computed from
+**AUC, MACE (calibration error), and sample size `n`** against fixed thresholds (AUC ≥ 0.60, MACE ≤ 0.10,
+n ≥ 50), but the adapter projects only the **boolean** `gate_passed` — **`YearlineContext` carries no AUC /
+MACE / `n`** (only `reference_scope`). To answer *"is the model performing well?"* you'd add an **optional
+`gate_diagnostics` block** (per-horizon `auc`, `mace`, `n` + the thresholds). The numbers already exist in
+the envelope, so it's a **thin projection — but a contract-shape change** ⇒ **bump `ADAPTER_VERSION`** ⇒ a
+coordinated **OM-Y1** pin bump.
+
+**Design recommendation.** Keep the **end-user card** to *status* (chips + basis + scope + staleness +
+disclaimer) — a holder shouldn't be reading AUC. Put AUC / MACE / `n` / calibration on a **separate internal
+ops/health view**, fed by the optional `gate_diagnostics` block if/when you add it. Decision + rationale:
+[`../../option-mgmt-integration/integration_design_and_plan.md`](../../option-mgmt-integration/integration_design_and_plan.md)
+§1. So: **surface gate status now (free); decide `gate_diagnostics` separately** (cheap, but a versioned
+contract change).
+
 ## 5. Recommendation — and what was delivered
 
 1. **Keep `YearlineContext` scalar** — it is correct as the engine's gated decision contract.
