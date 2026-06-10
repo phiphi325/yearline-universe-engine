@@ -267,32 +267,31 @@ ops hygiene, not a date:**
      drift) on push/PR **and** as the nightly's pre-publish gate, so a bad push can't poison the feed.
    - **Never let the nightly job bump `adapter_version` / `series_version`** — the schedule is for *data*
      freshness, never a contract change (those stay reviewed PRs with a coordinated OM-Y1 bump).
-4. **Flip `workflow_dispatch` → `schedule:`** — OM-Y2 ✅ and the CI contract test ✅ are both now in, so the
-   **only remaining prerequisite is operational:** a `scripts/run_nightly.py` entrypoint (run_universe_pipeline
-   → `export_yearline_context` + `export_yearline_trend_series`), then uncomment the `schedule:` block. **No
-   API-key secret is needed** for the default keyless providers (§10.1) — add one only if you opt into a paid
-   data vendor for cloud-runner reliability. Until then, manual `workflow_dispatch` is the correct, safe state.
+4. **Flip `workflow_dispatch` → `schedule:`** — OM-Y2 ✅, the CI contract test ✅, **and the producer**
+   (`scripts/run_nightly.py` + the **Tiingo** provider + `scripts/parity_check.py`) ✅ are all now in (V13.9).
+   The **only remaining steps are operational:** set the `TIINGO_API_KEY` repo secret, run `parity_check.py`
+   once (Tiingo adjusted close vs the committed cache — must pass), then uncomment the `schedule:` block. The
+   shipped `.github/workflows/yearline_nightly.yml` already reads the secret and runs `--provider tiingo`.
+   Until then, manual `workflow_dispatch` is the correct, safe state.
 
-### 10.1 Where the nightly data comes from (no API key)
-`load_price_data(provider="auto")` walks a **keyless** provider chain (`src/yearline_universe/data_loader.py`):
+### 10.1 Where the nightly data comes from
+`load_price_data(provider="auto")` walks the chain (`src/yearline_universe/data_loader.py`):
 1. **`cache`** — committed per-ticker CSVs (`data/price_cache/{TICKER}.csv`); offline/reproducible — this is
    what **CI** uses.
-2. **`yfinance`** — `yf.download(...)`, auto-adjusted Yahoo Finance bars. **Free, no API key.**
-3. **`yahoo_chart`** — the Yahoo v8 chart HTTPS endpoint via `curl_cffi` (browser impersonation) or
-   `requests`. **Free, no API key.**
+2. **`tiingo`** *(V13.9, the nightly's keyed primary)* — Tiingo daily-prices API, **adjusted** close, keyed via
+   `TIINGO_API_KEY`. Reliable + authenticated (not IP-blocked). **No key ⇒ it no-ops** and the chain falls
+   through, so CI / keyless runs are unaffected. The nightly pins `--provider tiingo`.
+3. **`yfinance`** — `yf.download(...)`, auto-adjusted Yahoo bars. **Free, no key** (fallback).
+4. **`yahoo_chart`** — the Yahoo v8 chart HTTPS endpoint via `curl_cffi`/`requests`. **Free, no key** (fallback).
 
-A nightly run pulls fresh bars (`force_download=True` ⇒ `yfinance` → `yahoo_chart`), refreshes the cache,
-re-runs the pooled pipeline, and exports the artifacts. **So `DATA_API_KEY` is *not* required** — it was a
-generic placeholder; the default stack authenticates with nothing. The one real caveat: **Yahoo throttles/
-blocks datacenter IPs**, and GitHub-hosted runners share them, so live pulls can intermittently 404/429/empty.
-Mitigations, by effort: rely on the built-in `yfinance`→`yahoo_chart` fallback + `curl_cffi` impersonation;
-add retry/backoff in `run_nightly.py`; run on a **self-hosted runner** (your own IP); or move to a **paid
-provider** (Polygon/Tiingo/EOD/Alpha Vantage) — *that* is the only scenario where a `*_API_KEY` secret enters
-the picture. A 9-ticker daily-bar pull is tiny, so cost/limits are a non-issue on a paid free tier.
-
-> **Going paid (e.g. Alpha Vantage):** full build + migration guide — the drop-in provider, the
-> adjusted-close caveat (AV's adjusted endpoint is *premium*), key-as-Actions-secret wiring, a vendor
-> comparison, and a parity check — is in [`../../reference/data_providers.md`](../../reference/data_providers.md).
+The **default/CI stack is keyless** (cache/Yahoo) — **so `DATA_API_KEY` was never required** (it was a generic
+placeholder). The **nightly cron** uses **Tiingo** (`TIINGO_API_KEY`) because Yahoo throttles/blocks datacenter
+IPs and GitHub-hosted runners share them, so direct Yahoo pulls can intermittently 404/429/empty. Full
+provider reference (Tiingo impl + AV/Polygon/EOD alternatives + the parity check):
+[`../../reference/data_providers.md`](../../reference/data_providers.md).
+Other mitigations, by effort: the built-in `yfinance`→`yahoo_chart` fallback + `curl_cffi` impersonation;
+retry/backoff (already in `run_nightly.py`); a **self-hosted runner** (your own IP); or another **paid
+provider** (Alpha Vantage / Polygon / EOD). A 9-ticker daily-bar pull is tiny, so cost/limits are a non-issue.
 
 ---
 

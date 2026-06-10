@@ -19,7 +19,7 @@ All docs for the V13 Universe Statistical Context Engine.
 
 | Doc | What it covers |
 |---|---|
-| [reference/data_providers.md](reference/data_providers.md) | **Price data providers.** How the engine sources OHLCV today (the keyless `cache → yfinance → yahoo_chart` chain), why you'd move to a **paid provider** (Yahoo throttles cloud/GitHub-Actions IPs), the **adjusted-close caveat** (the engine needs split/dividend-adjusted close — and Alpha Vantage's adjusted endpoint is **premium**, free is raw-only), a **drop-in `_load_from_alpha_vantage`** sketch + key-as-Actions-secret wiring, an AV/Polygon/Tiingo/EOD comparison, and a **safe migration with a parity check** (don't silently change model inputs). |
+| [reference/data_providers.md](reference/data_providers.md) | **Price data providers.** The keyless default chain (`cache → tiingo → yfinance → yahoo_chart`); why the **nightly cron** moved to a keyed provider (Yahoo throttles cloud/GitHub-Actions IPs); the **adjusted-close caveat** (the engine needs split/dividend-adjusted close). **Tiingo is the implemented provider (V13.9)** — `_load_from_tiingo` (keyed via `TIINGO_API_KEY`, adjusted EOD free), `scripts/run_nightly.py`, and `scripts/parity_check.py` — chosen over Alpha Vantage premium (whose adjusted endpoint is paid). Includes the AV/Polygon/EOD alternatives + a **safe migration with a parity check** (don't silently change model inputs). |
 
 ## Roadmap / phased design
 

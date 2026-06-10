@@ -1,16 +1,22 @@
 """Price data loading for the V13 universe engine.
 
-Ticker-agnostic. Supports three providers, tried in order:
+Ticker-agnostic. Supports four providers, tried in order:
 
 1. ``cache``   - a local per-ticker CSV cache (``{cache_dir}/{TICKER}.csv``) of
    fully split/dividend-adjusted OHLCV bars (yfinance ``auto_adjust=True``
    format). Used for reproducible / offline runs.
-2. ``yfinance`` - live download via the ``yfinance`` package.
-3. ``yahoo_chart`` - direct Yahoo v8 chart API via ``requests`` (honours the
+2. ``tiingo``  - live download from the Tiingo daily-prices REST API (keyed via the
+   ``TIINGO_API_KEY`` env var; uses the **adjusted** fields to match ``auto_adjust``).
+   A reliable, authenticated source for a scheduled cron (not IP-blocked like Yahoo).
+   No key ⇒ this provider returns ``None`` and the chain falls through (back-compat).
+3. ``yfinance`` - live download via the ``yfinance`` package.
+4. ``yahoo_chart`` - direct Yahoo v8 chart API via ``requests`` (honours the
    HTTPS proxy) with optional ``curl_cffi`` browser impersonation.
 
 The default ``provider="auto"`` walks the list until one succeeds, so the same
-engine code runs offline (cache) or live (yfinance/chart) without changes.
+engine code runs offline (cache) or live (tiingo/yfinance/chart) without changes.
+Because ``tiingo`` no-ops without a key, ``auto`` behaves exactly as before unless
+``TIINGO_API_KEY`` is set. Reference: ``docs/reference/data_providers.md``.
 
 This is a faithful port of V12's ``load_price_data`` /
 ``standardize_price_df`` plus a live-capable fallback chain.
@@ -20,6 +26,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -187,8 +194,62 @@ def _load_from_yahoo_chart(ticker: str, config: StudyConfig) -> pd.DataFrame | N
         return None
 
 
+def _tiingo_frame_from_csv(text: str, ticker: str, config: StudyConfig) -> pd.DataFrame | None:
+    """Parse a Tiingo ``/tiingo/daily/{ticker}/prices`` CSV into a standardized OHLCV frame.
+
+    Tiingo CSV columns: ``date,close,high,low,open,volume,adjClose,adjHigh,adjLow,adjOpen,
+    adjVolume,divCash,splitFactor``. To match the engine's ``auto_adjust=True`` convention we map
+    the **adjusted** fields (``adj*``) onto ``Open/High/Low/Close/Volume`` when available; otherwise
+    the raw fields (so a non-adjusted feed still parses, with a caveat — see the data-providers ref).
+    """
+    try:
+        df = pd.read_csv(io.StringIO(text))
+    except Exception:
+        return None
+    if df is None or df.empty or "date" not in df.columns:
+        return None
+    df = df.set_index("date")
+    adj = ["adjOpen", "adjHigh", "adjLow", "adjClose", "adjVolume"]
+    raw = ["open", "high", "low", "close", "volume"]
+    use_adj = bool(getattr(config, "auto_adjust", True)) and all(c in df.columns for c in adj)
+    src = adj if use_adj else raw
+    if not all(c in df.columns for c in src):
+        return None
+    out = df[src].copy()
+    out.columns = ["Open", "High", "Low", "Close", "Volume"]
+    return _slice_window(standardize_price_df(out, ticker), config)
+
+
+def _load_from_tiingo(ticker: str, config: StudyConfig) -> pd.DataFrame | None:
+    """Live download from Tiingo's daily-prices API. Keyed via ``TIINGO_API_KEY``.
+
+    Returns ``None`` (so the provider chain falls through) when: no key is set; the request fails;
+    a non-2xx / empty response; or Tiingo returns a JSON error/throttle body instead of CSV.
+    """
+    key = os.environ.get("TIINGO_API_KEY")
+    if not key:
+        return None                                       # no key ⇒ fall through the chain (back-compat)
+    start = str(config.start)[:10] if getattr(config, "start", None) else "1990-01-01"
+    url = f"https://api.tiingo.com/tiingo/daily/{ticker}/prices?startDate={start}&format=csv"
+    if getattr(config, "end", None):
+        url += f"&endDate={str(config.end)[:10]}"
+    try:
+        import requests
+        # Key in the Authorization header (not the URL) so it can't leak into logs/proxies.
+        r = requests.get(url, headers={"Authorization": f"Token {key}"}, timeout=40)
+    except Exception:
+        return None
+    if getattr(r, "status_code", None) != 200 or not getattr(r, "text", ""):
+        return None
+    head = r.text.lstrip()[:1]
+    if head in ("{", "["):                                # JSON body ⇒ Tiingo error/throttle, not CSV data
+        return None
+    return _tiingo_frame_from_csv(r.text, ticker, config)
+
+
 _PROVIDERS = {
     "cache": _load_from_cache,
+    "tiingo": lambda t, c, d: _load_from_tiingo(t, c),
     "yfinance": lambda t, c, d: _load_from_yfinance(t, c),
     "yahoo_chart": lambda t, c, d: _load_from_yahoo_chart(t, c),
 }
@@ -205,8 +266,9 @@ def load_price_data(
     """Load standardized OHLCV for one ticker.
 
     provider:
-        "auto"        - cache -> yfinance -> yahoo_chart (default)
+        "auto"        - cache -> tiingo -> yfinance -> yahoo_chart (default; tiingo no-ops without a key)
         "cache"       - cache only
+        "tiingo"      - live Tiingo only (requires TIINGO_API_KEY)
         "yfinance"    - live yfinance only
         "yahoo_chart" - direct Yahoo chart API only
     """
@@ -214,19 +276,19 @@ def load_price_data(
     cache_dir = Path(cache_dir) if cache_dir is not None else DEFAULT_CACHE_DIR
 
     if provider == "auto":
-        order = ["yfinance", "yahoo_chart"] if force_download else ["cache", "yfinance", "yahoo_chart"]
+        live = ["tiingo", "yfinance", "yahoo_chart"]
+        order = live if force_download else ["cache", *live]
     else:
         order = [provider]
 
     errors: list[str] = []
     for name in order:
+        fn = _PROVIDERS.get(name)
+        if fn is None:
+            errors.append(f"{name}: unknown provider")
+            continue
         try:
-            if name == "cache":
-                df = _load_from_cache(ticker, config, cache_dir)
-            elif name == "yfinance":
-                df = _load_from_yfinance(ticker, config)
-            else:
-                df = _load_from_yahoo_chart(ticker, config)
+            df = fn(ticker, config, cache_dir)
         except Exception as exc:  # pragma: no cover - defensive
             errors.append(f"{name}: {exc}")
             df = None

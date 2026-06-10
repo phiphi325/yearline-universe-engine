@@ -126,40 +126,45 @@ jobs:
         with: { python-version: "3.9", cache: pip }
       - run: pip install -e ".[live]" jsonschema     # live = yfinance + curl_cffi
       - name: Produce
-        run: python scripts/run_nightly.py --as-of "${{ inputs.as_of || 'latest' }}" --out exports/yearline_context
+        env:
+          TIINGO_API_KEY: ${{ secrets.TIINGO_API_KEY }}    # the cron's keyed provider (V13.9; see §2.2)
+        run: |
+          ARGS="--provider tiingo --out exports/yearline_context"
+          if [ -n "${{ inputs.as_of }}" ]; then ARGS="$ARGS --as-of ${{ inputs.as_of }}"; fi
+          python scripts/run_nightly.py $ARGS
       - name: Validate before publishing
         run: python scripts/validate_contract_fixtures.py   # don't poison the feed
       - uses: actions/upload-artifact@v4
         with: { name: yearline-context, path: exports/yearline_context/*.json, if-no-files-found: error }
 ```
+(Note: pass `--as-of` only when provided — `run_nightly.py` defaults to today's last completed session; a
+literal `"latest"` would fail date parsing.)
 
 The shape is always **produce → validate → publish**. The validate step is the same contract test from CI,
 reused as a pre-publish gate: a malformed artifact fails the run *before* anyone downstream ingests it.
 
-### 2.2 Where the data actually comes from (and why there's **no API key**)
-A frequent misconception (we made it ourselves with a stray `DATA_API_KEY` placeholder): this pipeline does
-**not** use a paid data API. `load_price_data(provider="auto")` walks a **keyless** chain
-(`src/yearline_universe/data_loader.py`):
+### 2.2 Where the data comes from (keyless by default; the cron uses a keyed provider)
+The **default + CI** path is keyless: `load_price_data(provider="auto")` walks
+`cache → tiingo → yfinance → yahoo_chart` (`src/yearline_universe/data_loader.py`), and with no key the
+`tiingo` step no-ops:
 
-1. `cache` — committed CSVs (offline; what CI uses).
+1. `cache` — committed CSVs (offline; what **CI** uses — **no secret**).
 2. `yfinance` — `yf.download(...)`, auto-adjusted Yahoo bars. **Free, no key.**
-3. `yahoo_chart` — Yahoo's v8 chart HTTPS endpoint via `curl_cffi` (browser impersonation) or `requests`.
-   **Free, no key.**
+3. `yahoo_chart` — Yahoo's v8 chart HTTPS endpoint via `curl_cffi`/`requests`. **Free, no key.**
 
-A nightly run pulls fresh bars (`force_download=True` ⇒ `yfinance` → `yahoo_chart`), refreshes the cache,
-re-runs the pooled pipeline, and exports. So **no secret is required.**
+So CI needs **no secret** (a `DATA_API_KEY` placeholder we briefly carried was simply wrong). But the
+**nightly cron** is the exception, and here's the teaching beat:
 
-> **The real caveat — cloud-runner IP blocking.** Yahoo throttles/blocks **datacenter IPs**, and
-> GitHub-hosted runners share them. So live pulls from a hosted runner can intermittently 404/429/return
-> empty. Mitigations, in order of effort:
-> 1. Rely on the built-in `yfinance` → `yahoo_chart` fallback + `curl_cffi` impersonation.
-> 2. Add **retry/backoff** in `run_nightly.py`.
-> 3. Use a **self-hosted runner** (your own residential/office IP).
-> 4. Move to a **paid provider** (Polygon / Tiingo / EOD / Alpha Vantage) — **this is the only scenario where
->    a `*_API_KEY` secret enters the picture**, added via *Settings → Secrets and variables → Actions* and
->    read as `${{ secrets.MY_PROVIDER_KEY }}`.
+> **The caveat that forced a real decision — cloud-runner IP blocking.** Yahoo throttles/blocks **datacenter
+> IPs**, and GitHub-hosted runners share them, so hosted live pulls intermittently 404/429/return empty.
+> Escalating fixes: (1) the built-in `yfinance → yahoo_chart` fallback + `curl_cffi` impersonation; (2)
+> **retry/backoff** (`run_nightly.py` has it); (3) a **self-hosted runner** (your own IP); (4) a **keyed
+> provider** — **which is what we did.**
 >
-> For a 9-ticker daily-bar pull the volume is tiny, so a paid free tier easily covers it if you go that route.
+> **Resolution (V13.9): the cron uses Tiingo** (`--provider tiingo`, keyed via the `TIINGO_API_KEY` secret) —
+> an authenticated API that isn't IP-scraped, with **adjusted** EOD on its free tier (chosen over Alpha
+> Vantage premium). So a `*_API_KEY` *does* enter — but only for the **cron**, never for CI. Adjusted-close
+> matters: a provider swap must pass `scripts/parity_check.py` (vs the committed cache) before you trust it.
 
 For the full paid-provider build + migration guide (drop-in provider code, the **adjusted-close caveat**,
 key-as-secret wiring, a vendor comparison, and a **parity check**), see

@@ -58,6 +58,15 @@ JSON-serializable **`YearlineContext`** contract `option-mgmt-2026` consumes —
   keyless** (`yfinance` → Yahoo `yahoo_chart`; `data_loader.py`) — **no API key needed**; a secret applies only
   if you opt into a paid provider for cloud-runner reliability (§10.1). The `ci/yearline_nightly.yml` template is
   now a pointer to the active copy. **No contract change — both pins frozen.**
+- **V13.9 (Tiingo provider + nightly producer).** Ships the producer so the cron is enablement-ready:
+  `_load_from_tiingo` in `data_loader.py` (keyed via `TIINGO_API_KEY`, adjusted EOD, added to the `auto` chain
+  and no-ops without a key); `scripts/run_nightly.py` (pre-flight freshness guard → pooled gated run →
+  `export_yearline_context` + `export_yearline_trend_series` keyed `{ticker}_{as_of}`; retry/backoff);
+  `scripts/parity_check.py` (Tiingo vs the committed Yahoo cache, diffs distance-to-MA250 — the migration
+  gate); `market_calendar.py` (NYSE-approx). Chose **Tiingo over Alpha Vantage** (free adjusted EOD). Tests +17
+  (full suite green, 26 files). Remaining to schedule: set the `TIINGO_API_KEY` secret + run the parity check +
+  uncomment `schedule:`. Reference: [`../../reference/data_providers.md`](../../reference/data_providers.md).
+  **No contract change — both pins frozen.**
 
 ### Design rules honored (from the assessment)
 - **No new modelling** — a pure projection over the existing Phase-7/8 envelope; deterministic.
